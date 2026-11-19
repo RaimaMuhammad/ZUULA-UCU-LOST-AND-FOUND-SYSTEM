@@ -1,22 +1,31 @@
+import { Link } from "react-router-dom";
+import character from "../assets/hero.png";
 
-function ScreenPlaceholder() {
+export default function Welcome() {
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        width: "100%",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        backgroundColor: "#FFFFFF",
-        fontFamily: "Arial, sans-serif",
-        fontSize: "18px",
-        color: "#555555",
-      }}
-    >
-      Page Under Development
-    </div>
+    <main className="welcome-screen">
+      <div className="welcome-content">
+        <div className="welcome-logo">ZUULA</div>
+
+        <div className="welcome-character">
+          <img src={character} alt="ZUULA character" />
+        </div>
+
+        <div className="welcome-description">
+          <h1>UCU Campus Lost &amp; Found System</h1>
+          <p>Report. Search. Claim.</p>
+        </div>
+
+        <div className="welcome-actions">
+          <Link to="/register" className="welcome-button welcome-signup">
+            Sign Up
+          </Link>
+
+          <Link to="/login" className="welcome-button welcome-login">
+            Log In
+          </Link>
+        </div>
+      </div>
+    </main>
   );
 }
-
-export default ScreenPlaceholder;
