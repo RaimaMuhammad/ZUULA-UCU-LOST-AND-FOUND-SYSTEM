@@ -12,7 +12,6 @@ export const createReport = async (req, res) => {
       privateDetails,
       location,
       incidentDate,
-      imageUrl,
     } = req.body;
 
     if (
@@ -34,6 +33,11 @@ export const createReport = async (req, res) => {
       });
     }
 
+    // Get the uploaded photograph's public path
+    const imageUrl = req.file
+      ? `/uploads/${req.file.filename}`
+      : null;
+
     const [result] = await pool.execute(
       `INSERT INTO reports
       (user_id, report_type, title, category, description,
@@ -48,13 +52,14 @@ export const createReport = async (req, res) => {
         reportType === "found" ? privateDetails || null : null,
         location,
         incidentDate,
-        imageUrl || null,
+        imageUrl,
       ]
     );
 
     return res.status(201).json({
       message: "Report submitted successfully.",
       reportId: result.insertId,
+      imageUrl,
     });
   } catch (error) {
     console.error("Create report error:", error);
@@ -180,8 +185,12 @@ export const updateReport = async (req, res) => {
       privateDetails,
       location,
       incidentDate,
-      imageUrl,
     } = req.body;
+
+    // Only replace the photograph when a new one is uploaded
+    const imageUrl = req.file
+      ? `/uploads/${req.file.filename}`
+      : null;
 
     const [result] = await pool.execute(
       `UPDATE reports
@@ -191,7 +200,7 @@ export const updateReport = async (req, res) => {
            private_details = ?,
            location = ?,
            incident_date = ?,
-           image_url = ?
+           image_url = COALESCE(?, image_url)
        WHERE id = ? AND user_id = ? AND status = 'active'`,
       [
         title,
@@ -200,7 +209,7 @@ export const updateReport = async (req, res) => {
         privateDetails || null,
         location,
         incidentDate,
-        imageUrl || null,
+        imageUrl,
         req.params.id,
         req.user.id,
       ]
@@ -214,6 +223,7 @@ export const updateReport = async (req, res) => {
 
     return res.status(200).json({
       message: "Report updated successfully.",
+      imageUrl,
     });
   } catch (error) {
     console.error("Update report error:", error);

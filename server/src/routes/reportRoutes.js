@@ -11,6 +11,7 @@ import {
 } from "../controllers/reportController.js";
 
 import { authenticate, authorize } from "../middleware/auth.js";
+import upload from "../middleware/upload.js";
 
 const router = express.Router();
 
@@ -25,19 +26,21 @@ router.get(
   getMyReports
 );
 
-// Authenticated students: submit a report
+// Authenticated students: submit a report with an optional photograph
 router.post(
   "/",
   authenticate,
   authorize("student"),
+  upload.single("image"),
   createReport
 );
 
-// Authenticated students: update their own report
+// Authenticated students: update their own report and optional photograph
 router.put(
   "/:id",
   authenticate,
   authorize("student"),
+  upload.single("image"),
   updateReport
 );
 
