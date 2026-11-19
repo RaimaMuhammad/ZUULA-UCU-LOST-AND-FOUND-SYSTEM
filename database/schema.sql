@@ -63,3 +63,7 @@ CREATE TABLE IF NOT EXISTS claims (
 );
 
 SHOW TABLES;
+
+DESCRIBE users;
+DESCRIBE reports;
+DESCRIBE claims;

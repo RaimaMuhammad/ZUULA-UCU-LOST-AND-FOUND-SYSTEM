@@ -37,6 +37,7 @@ const validateRequest = (req, res, next) => {
   next();
 };
 
+// Registration validation
 const registrationValidation = [
   body("fullName")
     .trim()
@@ -56,30 +57,15 @@ const registrationValidation = [
     .isLength({ min: 8 })
     .withMessage("Password must contain at least 8 characters."),
 
-  body("role")
-    .optional()
-    .isIn(["student", "admin"])
-    .withMessage("Role must be student or admin."),
-
-  body("studentNumber").custom((value, { req }) => {
-    const role = req.body.role || "student";
-
-    if (role === "student" && (!value || !value.trim())) {
-      throw new Error("Student number is required.");
-    }
-
-    if (value && value.length > 50) {
-      throw new Error("Student number must not exceed 50 characters.");
-    }
-
-    return true;
-  }),
-
-  body("accessCode")
+  body("studentNumber")
+    .trim()
     .notEmpty()
-    .withMessage("Registration access code is required."),
+    .withMessage("Student number is required.")
+    .isLength({ max: 50 })
+    .withMessage("Student number must not exceed 50 characters."),
 ];
 
+// Login validation
 const loginValidation = [
   body("email")
     .trim()
@@ -91,6 +77,7 @@ const loginValidation = [
     .withMessage("Password is required."),
 ];
 
+// Register student
 router.post(
   "/register",
   authLimiter,
@@ -99,6 +86,7 @@ router.post(
   register
 );
 
+// Login
 router.post(
   "/login",
   authLimiter,
@@ -107,8 +95,10 @@ router.post(
   login
 );
 
+// Logout
 router.post("/logout", logout);
 
+// Get currently authenticated user
 router.get("/me", authenticate, getCurrentUser);
 
 export default router;

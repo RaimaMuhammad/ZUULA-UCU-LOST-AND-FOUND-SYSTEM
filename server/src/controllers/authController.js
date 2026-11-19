@@ -42,6 +42,7 @@ const publicUser = (user) => ({
   role: user.role,
 });
 
+// STUDENT REGISTRATION
 export const register = async (req, res) => {
   try {
     const {
@@ -49,41 +50,21 @@ export const register = async (req, res) => {
       email,
       studentNumber,
       password,
-      role = "student",
-      accessCode,
     } = req.body;
 
     const normalizedEmail = email.trim().toLowerCase();
-    const normalizedRole = role.toLowerCase();
+    const normalizedStudentNumber = studentNumber.trim();
 
-    if (!["student", "admin"].includes(normalizedRole)) {
-      return res.status(400).json({
-        message: "Invalid account role.",
-      });
-    }
-
-    if (
-      normalizedRole === "student" &&
-      accessCode !== process.env.STUDENT_ACCESS_CODE
-    ) {
-      return res.status(403).json({
-        message: "Invalid student registration access code.",
-      });
-    }
-
-    if (
-      normalizedRole === "admin" &&
-      (!process.env.ADMIN_ACCESS_CODE ||
-        accessCode !== process.env.ADMIN_ACCESS_CODE)
-    ) {
-      return res.status(403).json({
-        message: "Invalid administrator access code.",
-      });
-    }
+    // Public registration always creates a student.
+    // The role supplied by the frontend is never trusted.
+    const role = "student";
 
     const [existingUsers] = await pool.execute(
-      "SELECT id FROM users WHERE email = ? OR (student_number = ? AND student_number IS NOT NULL)",
-      [normalizedEmail, normalizedRole === "student" ? studentNumber.trim() : null]
+      `SELECT id
+       FROM users
+       WHERE email = ? OR student_number = ?
+       LIMIT 1`,
+      [normalizedEmail, normalizedStudentNumber]
     );
 
     if (existingUsers.length > 0) {
@@ -96,14 +77,14 @@ export const register = async (req, res) => {
 
     const [result] = await pool.execute(
       `INSERT INTO users
-        (full_name, email, student_number, password_hash, role)
+       (full_name, email, student_number, password_hash, role)
        VALUES (?, ?, ?, ?, ?)`,
       [
         fullName.trim(),
         normalizedEmail,
-        normalizedRole === "student" ? studentNumber.trim() : null,
+        normalizedStudentNumber,
         passwordHash,
-        normalizedRole,
+        role,
       ]
     );
 
@@ -111,8 +92,8 @@ export const register = async (req, res) => {
       id: result.insertId,
       full_name: fullName.trim(),
       email: normalizedEmail,
-      student_number: normalizedRole === "student" ? studentNumber.trim() : null,
-      role: normalizedRole,
+      student_number: normalizedStudentNumber,
+      role,
     };
 
     const token = createToken(user);
@@ -137,13 +118,18 @@ export const register = async (req, res) => {
   }
 };
 
+// LOGIN
 export const login = async (req, res) => {
   try {
     const email = req.body.email.trim().toLowerCase();
     const { password } = req.body;
 
     const [users] = await pool.execute(
-      "SELECT * FROM users WHERE email = ? LIMIT 1",
+      `SELECT id, full_name, email, student_number,
+              password_hash, role
+       FROM users
+       WHERE email = ?
+       LIMIT 1`,
       [email]
     );
 
@@ -154,6 +140,7 @@ export const login = async (req, res) => {
     }
 
     const user = users[0];
+
     const passwordMatches = await bcrypt.compare(
       password,
       user.password_hash
@@ -181,6 +168,7 @@ export const login = async (req, res) => {
   }
 };
 
+// LOGOUT
 export const logout = (req, res) => {
   res.clearCookie(COOKIE_NAME, cookieOptions);
 
@@ -189,6 +177,7 @@ export const logout = (req, res) => {
   });
 };
 
+// GET CURRENT USER
 export const getCurrentUser = async (req, res) => {
   try {
     const [users] = await pool.execute(
