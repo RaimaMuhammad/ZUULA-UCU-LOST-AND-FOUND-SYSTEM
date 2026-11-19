@@ -68,15 +68,103 @@ DESCRIBE users;
 DESCRIBE reports;
 DESCRIBE claims;
 
-SELECT * FROM users;
-
 USE zuula_db;
 
 SELECT
     id,
     full_name,
     email,
-    student_number,
-    role
+    password_hash
 FROM users
 ORDER BY id DESC;
+
+SELECT* FROM users;
+
+USE zuula_db;
+
+INSERT INTO reports (
+    user_id,
+    report_type,
+    title,
+    category,
+    description,
+    private_details,
+    location,
+    incident_date,
+    image_url,
+    status
+)
+VALUES
+(
+    1,
+    'lost',
+    'Samsung Smartphone',
+    'Electronics',
+    'A Samsung smartphone was lost around the university campus.',
+    NULL,
+    'University Library',
+    '2026-11-15',
+    '/uploads/phone.jpg',
+    'active'
+),
+(
+    2,
+    'found',
+    'Black School Backpack',
+    'Bags',
+    'A black backpack was found near the student centre.',
+    'Contains a distinctive blue keychain inside the front pocket.',
+    'Student Centre',
+    '2026-11-16',
+    '/uploads/bag.jpg',
+    'active'
+),
+(
+    3,
+    'lost',
+    'HP Laptop',
+    'Electronics',
+    'An HP laptop was misplaced after a lecture.',
+    NULL,
+    'Lecture Room',
+    '2026-11-17',
+    '/uploads/laptop.jpg',
+    'active'
+),
+(
+    4,
+    'found',
+    'Business Studies Textbooks',
+    'Books',
+    'Several business studies textbooks were found on campus.',
+    'One book has handwritten initials on the inside cover.',
+    'University Library',
+    '2026-11-18',
+    '/uploads/books.jpg',
+    'active'
+),
+(
+    5,
+    'lost',
+    'Set of Keys',
+    'Other',
+    'A set of keys attached to a small keyring was lost.',
+    NULL,
+    'University Cafeteria',
+    '2026-11-19',
+    '/uploads/keys.jpg',
+    'active'
+);
+
+SELECT
+    id,
+    user_id,
+    report_type,
+    title,
+    image_url,
+    status
+FROM reports
+ORDER BY id DESC
+LIMIT 5;
+
+Select * from reports;
