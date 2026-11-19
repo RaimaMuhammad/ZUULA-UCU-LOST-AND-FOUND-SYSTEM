@@ -1,3 +1,4 @@
+
 import { Link } from "react-router-dom";
 import character from "../assets/hero.png";
 
@@ -5,7 +6,9 @@ export default function Welcome() {
   return (
     <main className="welcome-screen">
       <div className="welcome-content">
-        <div className="welcome-logo">ZUULA</div>
+        <div className="welcome-logo">
+          <img src="/zuula-logo.png" alt="ZUULA" />
+        </div>
 
         <div className="welcome-character">
           <img src={character} alt="ZUULA character" />

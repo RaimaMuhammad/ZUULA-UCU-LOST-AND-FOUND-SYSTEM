@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import character from "../assets/hero.png";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -43,64 +44,134 @@ export default function Login() {
   };
 
   return (
-    <main className="auth-page">
-      <section className="auth-container">
-        <div className="auth-heading">
-          <h1>Welcome Back</h1>
-          <p>Log in to your ZUULA account.</p>
+    <main className="register-page">
+
+      {/* LEFT BRANDING PANEL */}
+      <aside className="register-brand-panel">
+
+        <img
+          src="/zuula-logo.png"
+          alt="ZUULA Logo"
+          className="register-brand-logo"
+        />
+
+        <img
+          src={character}
+          alt="ZUULA Illustration"
+          className="register-character"
+        />
+
+        <div className="register-brand-text">
+          <h3>UCU Campus Lost &amp; Found System</h3>
+
+          <p>Report.Search.Claim</p>
         </div>
 
-        {error && (
-          <p role="alert" className="auth-error">
-            {error}
-          </p>
-        )}
+      </aside>
 
-        <form onSubmit={handleSubmit} className="auth-form">
-          <label htmlFor="email">Email Address</label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            placeholder="Enter your email"
-            value={formData.email}
-            onChange={handleChange}
-            autoComplete="email"
-            required
-          />
+      {/* RIGHT LOGIN PANEL */}
+      <section className="register-main">
+        <div className="register-content">
 
-          <label htmlFor="password">Password</label>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            placeholder="Enter your password"
-            value={formData.password}
-            onChange={handleChange}
-            autoComplete="current-password"
-            required
-          />
+          {/* PAGE HEADING */}
+          <div className="register-heading">
+            <span className="register-eyebrow">
+              WELCOME BACK
+            </span>
 
-          <div className="forgot-password">
-            <Link to="/forgot-password">
-              Forgot Password?
-            </Link>
+            <h1>Log In</h1>
+
+            <p>
+              Access your UCU Campus Lost &amp; Found account.
+            </p>
           </div>
 
-          <button
-            type="submit"
-            className="primary-button"
-            disabled={submitting}
-          >
-            {submitting ? "Logging In..." : "Log In"}
-          </button>
-        </form>
+          {/* SIGN UP AND LOG IN CARDS */}
+          <div className="register-tabs">
 
-        <p className="auth-switch">
-          Don't have an account?{" "}
-          <Link to="/register">Sign Up</Link>
-        </p>
+            <Link
+              to="/register"
+              className="register-tab"
+            >
+              Sign Up
+            </Link>
+
+            <div className="register-tab active">
+              Log In
+            </div>
+
+          </div>
+
+          {/* ERROR MESSAGE */}
+          {error && (
+            <p role="alert" className="register-error">
+              {error}
+            </p>
+          )}
+
+          {/* LOGIN FORM */}
+          <form
+            onSubmit={handleSubmit}
+            className="register-form"
+          >
+
+            <label htmlFor="email">
+              Email Address
+            </label>
+
+            <input
+              id="email"
+              name="email"
+              type="email"
+              placeholder="Enter your email"
+              value={formData.email}
+              onChange={handleChange}
+              autoComplete="email"
+              required
+            />
+
+            <label htmlFor="password">
+              Password
+            </label>
+
+            <input
+              id="password"
+              name="password"
+              type="password"
+              placeholder="Enter your password"
+              value={formData.password}
+              onChange={handleChange}
+              autoComplete="current-password"
+              required
+            />
+
+            {/* FORGOT PASSWORD */}
+            <div className="login-forgot-password">
+              <Link to="/forgot-password">
+                Forgot Password?
+              </Link>
+            </div>
+
+            {/* LOGIN BUTTON */}
+            <button
+              type="submit"
+              className="register-submit"
+              disabled={submitting}
+            >
+              {submitting ? "Logging In..." : "Log In"}
+            </button>
+
+          </form>
+
+          {/* REGISTER PROMPT */}
+          <p className="register-login-prompt">
+            Don't have an account?{" "}
+            <Link to="/register">Sign Up</Link>
+          </p>
+
+        </div>
       </section>
+
     </main>
   );
 }

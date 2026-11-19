@@ -67,3 +67,16 @@ SHOW TABLES;
 DESCRIBE users;
 DESCRIBE reports;
 DESCRIBE claims;
+
+SELECT * FROM users;
+
+USE zuula_db;
+
+SELECT
+    id,
+    full_name,
+    email,
+    student_number,
+    role
+FROM users
+ORDER BY id DESC;

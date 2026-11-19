@@ -1,6 +1,7 @@
 
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
 import pool from "../config/db.js";
 
 const COOKIE_NAME = "zuula_token";
@@ -42,7 +43,25 @@ const publicUser = (user) => ({
   role: user.role,
 });
 
-// STUDENT REGISTRATION
+// Verify administrator registration code.
+const isValidAdminCode = (providedCode) => {
+  const actualCode = process.env.ADMIN_ACCESS_CODE;
+
+  if (!actualCode || !providedCode) {
+    return false;
+  }
+
+  const providedBuffer = Buffer.from(String(providedCode));
+  const actualBuffer = Buffer.from(actualCode);
+
+  if (providedBuffer.length !== actualBuffer.length) {
+    return false;
+  }
+
+  return crypto.timingSafeEqual(providedBuffer, actualBuffer);
+};
+
+// REGISTRATION
 export const register = async (req, res) => {
   try {
     const {
@@ -50,15 +69,57 @@ export const register = async (req, res) => {
       email,
       studentNumber,
       password,
+      role,
+      adminCode,
     } = req.body;
+
+    if (
+      !fullName?.trim() ||
+      !email?.trim() ||
+      !studentNumber?.trim() ||
+      !password
+    ) {
+      return res.status(400).json({
+        message: "Please complete all required fields.",
+      });
+    }
+
+    if (password.length < 8) {
+      return res.status(400).json({
+        message: "Password must contain at least 8 characters.",
+      });
+    }
+
+    const selectedRole = role || "student";
+
+    if (!["student", "admin"].includes(selectedRole)) {
+      return res.status(400).json({
+        message: "Invalid account type selected.",
+      });
+    }
+
+    // Only administrators need the special access code.
+    if (selectedRole === "admin") {
+      if (!process.env.ADMIN_ACCESS_CODE) {
+        console.error("ADMIN_ACCESS_CODE is not configured.");
+
+        return res.status(503).json({
+          message: "Administrator registration is currently unavailable.",
+        });
+      }
+
+      if (!isValidAdminCode(adminCode)) {
+        return res.status(403).json({
+          message: "Invalid administrator registration code.",
+        });
+      }
+    }
 
     const normalizedEmail = email.trim().toLowerCase();
     const normalizedStudentNumber = studentNumber.trim();
+    const normalizedFullName = fullName.trim();
 
-    // Public registration always creates a student.
-    // The role supplied by the frontend is never trusted.
-    const role = "student";
-
+    // Check for existing email or account number.
     const [existingUsers] = await pool.execute(
       `SELECT id
        FROM users
@@ -75,25 +136,26 @@ export const register = async (req, res) => {
 
     const passwordHash = await bcrypt.hash(password, 12);
 
+    // Save the selected account type.
     const [result] = await pool.execute(
       `INSERT INTO users
        (full_name, email, student_number, password_hash, role)
        VALUES (?, ?, ?, ?, ?)`,
       [
-        fullName.trim(),
+        normalizedFullName,
         normalizedEmail,
         normalizedStudentNumber,
         passwordHash,
-        role,
+        selectedRole,
       ]
     );
 
     const user = {
       id: result.insertId,
-      full_name: fullName.trim(),
+      full_name: normalizedFullName,
       email: normalizedEmail,
       student_number: normalizedStudentNumber,
-      role,
+      role: selectedRole,
     };
 
     const token = createToken(user);
@@ -121,8 +183,14 @@ export const register = async (req, res) => {
 // LOGIN
 export const login = async (req, res) => {
   try {
-    const email = req.body.email.trim().toLowerCase();
+    const email = req.body.email?.trim().toLowerCase();
     const { password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({
+        message: "Please enter your email and password.",
+      });
+    }
 
     const [users] = await pool.execute(
       `SELECT id, full_name, email, student_number,
