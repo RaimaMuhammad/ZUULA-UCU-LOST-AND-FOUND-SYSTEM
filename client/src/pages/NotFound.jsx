@@ -1,22 +1,15 @@
+import { Link } from "react-router-dom";
 
-function ScreenPlaceholder() {
+export default function NotFound() {
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        width: "100%",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        backgroundColor: "#FFFFFF",
-        fontFamily: "Arial, sans-serif",
-        fontSize: "18px",
-        color: "#555555",
-      }}
-    >
-      Page Under Development
+    <div className="not-found-page">
+      <h1>404</h1>
+      <h2>Page Not Found</h2>
+      <p>The page you are looking for could not be found.</p>
+
+      <Link to="/" className="primary-button">
+        Return to Welcome Page
+      </Link>
     </div>
   );
 }
-
-export default ScreenPlaceholder;
