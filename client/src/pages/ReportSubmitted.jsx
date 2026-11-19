@@ -1,22 +1,26 @@
+import { Link } from "react-router-dom";
 
-function ScreenPlaceholder() {
+export default function ReportSubmitted() {
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        width: "100%",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        backgroundColor: "#FFFFFF",
-        fontFamily: "Arial, sans-serif",
-        fontSize: "18px",
-        color: "#555555",
-      }}
-    >
-      Page Under Development
+    <div className="confirmation-page">
+      <div className="confirmation-icon">✓</div>
+
+      <h1>Report Submitted Successfully</h1>
+
+      <p>
+        Your item report has been received. You can track and manage your
+        submission from your reports page.
+      </p>
+
+      <div className="confirmation-actions">
+        <Link to="/my-reports" className="primary-button">
+          View My Reports
+        </Link>
+
+        <Link to="/home" className="secondary-button">
+          Return Home
+        </Link>
+      </div>
     </div>
   );
 }
-
-export default ScreenPlaceholder;
