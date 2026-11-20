@@ -1,34 +1,72 @@
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 
 export default function ClaimApproved() {
+  const { id } = useParams();
+
   return (
-    <div className="confirmation-page">
-      <div className="confirmation-icon">✓</div>
+    <div className="admin-page">
 
-      <h1>Claim Approved</h1>
-
-      <p>
-        The ownership claim has been approved. The claimant can now arrange
-        collection of the item.
-      </p>
-
-      <div className="private-information-notice">
-        <strong>Important</strong>
-        <p>
-          Approval does not automatically mean that the item has been returned.
-          The physical handover must be confirmed separately.
-        </p>
+      <div className="admin-breadcrumb">
+        <Link to="/admin">Dashboard</Link>
+        <span>/</span>
+        <Link to="/admin/claims">All Claims</Link>
+        <span>/</span>
+        <strong>Claim Approved</strong>
       </div>
 
-      <div className="confirmation-actions">
-        <Link to="/admin/claims" className="primary-button">
-          Return to Claims
-        </Link>
+      <div className="admin-success-container">
 
-        <Link to="/admin" className="secondary-button">
-          Admin Dashboard
-        </Link>
+        <div className="admin-success-card">
+
+          <div className="admin-success-icon">
+            <svg
+              width="65"
+              height="65"
+              viewBox="0 0 65 65"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <circle
+                cx="32.5"
+                cy="32.5"
+                r="27"
+                stroke="#A51D55"
+                strokeWidth="2"
+              />
+
+              <path
+                d="M20 33L28 41L46 23"
+                stroke="#A51D55"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
+
+          <h1>Claim Approved!</h1>
+
+          <h3>Successfully approved the claim!</h3>
+
+          <p>
+            The ownership claim has been successfully approved.
+            The claimant can now proceed with arranging collection
+            of the item.
+          </p>
+
+          <small>Claim Reference: #{id}</small>
+
+          <Link
+            to="/admin/claims"
+            className="admin-success-button"
+          >
+            Done
+          </Link>
+
+        </div>
+
       </div>
+
     </div>
   );
 }
