@@ -1,84 +1,198 @@
-import { Link, useParams } from "react-router-dom";
 import { useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 
 export default function ReviewClaim() {
   const { id } = useParams();
+  const navigate = useNavigate();
+
   const [decisionReason, setDecisionReason] = useState("");
 
+  // Temporary demonstration data.
+  // Later, retrieve this record from the backend using id.
+  const claim = {
+    id,
+    item: "Set of Keys",
+    category: "Personal Items",
+    location: "UCU Main Library",
+    dateFound: "16 November 2026",
+    image: "/uploads/keys.jpg",
+    claimant: "Jane Doe",
+    studentId: "2026-00001",
+    submitted: "18 November 2026",
+    email: "jane@example.com",
+    privateDetails:
+      "The keys have a small silver keyring with a blue attachment.",
+    evidence:
+      "I lost a set of keys with a blue keyring near the university library. One of the keys has a small marking on it.",
+  };
+
   function handleApprove() {
-    // Connect this action to the administrator approval API later.
+    navigate(`/admin/claim-approved/${id}`);
   }
 
   function handleReject() {
-    // Connect this action to the administrator rejection API later.
+    if (!decisionReason.trim()) {
+      alert("Please provide a reason for rejecting this claim.");
+      return;
+    }
+
+    alert("Claim rejected successfully (demonstration only).");
+    navigate("/admin/claims");
   }
 
   return (
-    <div className="review-claim-page">
-      <div className="breadcrumb">
-        <Link to="/admin">Dashboard</Link> /{" "}
-        <Link to="/admin/claims">All Claims</Link> / Review Claim
+    <div className="admin-page">
+
+      {/* BREADCRUMB */}
+      <div className="admin-breadcrumb">
+        <Link to="/admin">Dashboard</Link>
+        <span>/</span>
+        <Link to="/admin/claims">All Claims</Link>
+        <span>/</span>
+        <strong>Review Claim</strong>
       </div>
 
-      <h1>Review Claim</h1>
-      <p>Examine the submitted evidence before making a decision.</p>
+      <div className="admin-page-heading">
+        <div>
+          <h1>Review Claim</h1>
+          <p>
+            Examine the ownership evidence before making a decision.
+          </p>
+        </div>
 
-      <div className="claim-review-layout">
-        <section className="review-item-section">
+        <span className="admin-status pending">
+          Pending Review
+        </span>
+      </div>
+
+      {/* REVIEW CONTENT */}
+      <div className="admin-review-layout">
+
+        {/* LEFT: ITEM INFORMATION */}
+        <section className="admin-review-item">
+
           <h2>Reported Item</h2>
 
-          <div className="review-item-image">Item Image</div>
-
-          <h3>Blue Water Bottle</h3>
-          <p>Found Item</p>
-          <p>Location: Ham Mukasa Library</p>
-          <p>Date Found: 18 November 2026</p>
-
-          <div className="private-evidence">
-            <h3>Finder's Private Details</h3>
-            <p>
-              The bottle has a small scratch near the bottom and a name
-              inscription on the lid.
-            </p>
+          <div className="admin-review-image">
+            <img
+              src={claim.image}
+              alt={claim.item}
+            />
           </div>
+
+          <h3>{claim.item}</h3>
+
+          <span className="admin-status found">
+            Found Item
+          </span>
+
+          <div className="admin-detail-list">
+
+            <div>
+              <span>Category</span>
+              <strong>{claim.category}</strong>
+            </div>
+
+            <div>
+              <span>Location Found</span>
+              <strong>{claim.location}</strong>
+            </div>
+
+            <div>
+              <span>Date Found</span>
+              <strong>{claim.dateFound}</strong>
+            </div>
+
+          </div>
+
+          {/* PRIVATE INFORMATION */}
+          <div className="admin-private-evidence">
+            <h3>Finder's Private Details</h3>
+            <p>{claim.privateDetails}</p>
+          </div>
+
         </section>
 
-        <section className="claim-evidence-section">
+        {/* RIGHT: CLAIMANT EVIDENCE */}
+        <section className="admin-review-evidence">
+
           <h2>Claimant Information</h2>
 
-          <p><strong>Name:</strong> Jane Doe</p>
-          <p><strong>Student Number:</strong> 2026-00000</p>
-          <p><strong>Submitted:</strong> 18 November 2026</p>
+          <div className="admin-claimant-card">
 
-          <div className="private-evidence">
-            <h3>Claimant's Ownership Evidence</h3>
-            <p>
-              The bottle has a scratch near the bottom. My name is written
-              inside the lid.
-            </p>
+            <div className="admin-avatar">
+              {claim.claimant.charAt(0)}
+            </div>
+
+            <div>
+              <h3>{claim.claimant}</h3>
+              <p>{claim.studentId}</p>
+              <small>{claim.email}</small>
+            </div>
+
           </div>
 
-          <label>Decision / Rejection Reason</label>
-          <textarea
-            rows="4"
-            value={decisionReason}
-            onChange={(e) => setDecisionReason(e.target.value)}
-            placeholder="Provide a reason if rejecting the claim..."
-          />
+          <div className="admin-detail-list">
 
-          <div className="review-actions">
-            <button onClick={handleApprove} className="approve-button">
+            <div>
+              <span>Claim Reference</span>
+              <strong>#{claim.id}</strong>
+            </div>
+
+            <div>
+              <span>Date Submitted</span>
+              <strong>{claim.submitted}</strong>
+            </div>
+
+          </div>
+
+          <div className="admin-private-evidence">
+            <h3>Claimant's Ownership Evidence</h3>
+            <p>{claim.evidence}</p>
+          </div>
+
+          {/* DECISION REASON */}
+          <div className="admin-decision-field">
+
+            <label htmlFor="decisionReason">
+              Decision / Rejection Reason
+            </label>
+
+            <textarea
+              id="decisionReason"
+              value={decisionReason}
+              onChange={(e) => setDecisionReason(e.target.value)}
+              placeholder="Enter your decision notes or reason for rejecting this claim..."
+              rows={5}
+            />
+
+          </div>
+
+          {/* ACTION BUTTONS */}
+          <div className="admin-review-actions">
+
+            <button
+              type="button"
+              className="admin-approve-button"
+              onClick={handleApprove}
+            >
               Approve Claim
             </button>
 
-            <button onClick={handleReject} className="reject-button">
+            <button
+              type="button"
+              className="admin-reject-button"
+              onClick={handleReject}
+            >
               Reject Claim
             </button>
+
           </div>
+
         </section>
+
       </div>
 
-      <p>Claim Reference: {id}</p>
     </div>
   );
 }

@@ -1,75 +1,158 @@
-import { Link } from "react-router-dom";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 
 export default function AdminReports() {
+  const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
-  const [type, setType] = useState("All");
 
   const reports = [
-    { id: 1, item: "Blue Water Bottle", type: "Found", category: "Bottles", owner: "Jane Doe", date: "18 Nov 2026", status: "Active" },
-    { id: 2, item: "Black Backpack", type: "Lost", category: "Bags", owner: "John Smith", date: "17 Nov 2026", status: "Active" },
-    { id: 3, item: "Set of Keys", type: "Found", category: "Personal Items", owner: "Mary Allen", date: "16 Nov 2026", status: "Claimed" },
-    { id: 4, item: "Calculator", type: "Lost", category: "Electronics", owner: "Peter James", date: "15 Nov 2026", status: "Returned" },
+    {
+      id: 1,
+      item: "Pink Backpack",
+      category: "Bags",
+      type: "Lost",
+      reporter: "Jane Doe",
+      date: "18 Nov 2026",
+      status: "Open",
+      image: "/uploads/bag.jpg",
+    },
+    {
+      id: 2,
+      item: "Set of Keys",
+      category: "Personal Items",
+      type: "Found",
+      reporter: "John Smith",
+      date: "17 Nov 2026",
+      status: "Open",
+      image: "/uploads/keys.jpg",
+    },
+    {
+      id: 3,
+      item: "Black Laptop",
+      category: "Electronics",
+      type: "Lost",
+      reporter: "Mary Allen",
+      date: "16 Nov 2026",
+      status: "Returned",
+      image: "/uploads/laptop.jpg",
+    },
+    {
+      id: 4,
+      item: "Water Bottle",
+      category: "Accessories",
+      type: "Found",
+      reporter: "Peter James",
+      date: "15 Nov 2026",
+      status: "Open",
+      image: "/uploads/phone.jpg",
+    },
   ];
 
   const filteredReports = reports.filter((report) => {
-    const matchesSearch = report.item.toLowerCase().includes(search.toLowerCase());
-    const matchesType = type === "All" || report.type === type;
+    const matchesFilter =
+      filter === "All" || report.status === filter;
 
-    return matchesSearch && matchesType;
+    const matchesSearch =
+      report.item.toLowerCase().includes(search.toLowerCase()) ||
+      report.reporter.toLowerCase().includes(search.toLowerCase());
+
+    return matchesFilter && matchesSearch;
   });
 
   return (
-    <div className="admin-reports-page">
-      <h1>All Reports</h1>
-      <p>View and manage all lost and found item reports.</p>
+    <div className="admin-page">
 
-      <div className="admin-filter-bar">
+      <div className="admin-page-heading">
+        <div>
+          <h1>All Reports</h1>
+          <p>View and manage all lost and found item reports.</p>
+        </div>
+      </div>
+
+      {/* FILTER TABS */}
+      <div className="admin-filter-tabs">
+        {["All", "Open", "Returned"].map((item) => (
+          <button
+            key={item}
+            onClick={() => setFilter(item)}
+            className={filter === item ? "active" : ""}
+          >
+            {item}
+          </button>
+        ))}
+      </div>
+
+      {/* SEARCH */}
+      <div className="admin-search-bar">
+        <span>⌕</span>
         <input
           type="search"
-          placeholder="Search reports..."
+          placeholder="Search for an item or reporter..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-
-        <select value={type} onChange={(e) => setType(e.target.value)}>
-          <option value="All">All Report Types</option>
-          <option value="Lost">Lost Items</option>
-          <option value="Found">Found Items</option>
-        </select>
       </div>
 
-      <div className="admin-table-wrapper">
-        <table>
-          <thead>
-            <tr>
-              <th>Item</th>
-              <th>Type</th>
-              <th>Category</th>
-              <th>Reported By</th>
-              <th>Date</th>
-              <th>Status</th>
-              <th>Action</th>
-            </tr>
-          </thead>
+      {/* REPORT LIST */}
+      <section className="admin-reports-list">
 
-          <tbody>
-            {filteredReports.map((report) => (
-              <tr key={report.id}>
-                <td>{report.item}</td>
-                <td>{report.type}</td>
-                <td>{report.category}</td>
-                <td>{report.owner}</td>
-                <td>{report.date}</td>
-                <td>{report.status}</td>
-                <td>
-                  <Link to={`/items/${report.id}`}>View</Link>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+        <div className="admin-list-heading">
+          <h2>Reported Items</h2>
+          <span>{filteredReports.length} reports</span>
+        </div>
+
+        {filteredReports.length > 0 ? (
+          filteredReports.map((report) => (
+            <article className="admin-report-card" key={report.id}>
+
+              <img
+                src={report.image}
+                alt={report.item}
+                className="admin-item-thumbnail"
+              />
+
+              <div className="admin-report-information">
+                <h3>{report.item}</h3>
+
+                <p>{report.category}</p>
+
+                <small>
+                  Reported by {report.reporter}
+                </small>
+
+                <small>{report.date}</small>
+              </div>
+
+              <div className="admin-report-meta">
+                <span className={`admin-status ${report.type.toLowerCase()}`}>
+                  {report.type}
+                </span>
+
+                <span className={`admin-status ${
+                  report.status === "Open" ? "pending" : "approved"
+                }`}>
+                  {report.status}
+                </span>
+              </div>
+
+              <Link
+                to={`/item/${report.id}`}
+                className="admin-outline-button"
+              >
+                View
+              </Link>
+
+            </article>
+          ))
+        ) : (
+          <div className="admin-empty-state">
+            <h3>No reports found</h3>
+            <p>Try changing your search or filter.</p>
+          </div>
+        )}
+
+      </section>
+
     </div>
   );
 }
