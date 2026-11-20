@@ -1,6 +1,11 @@
 
 import pool from "../config/db.js";
 
+import {
+  createNotification,
+  notifyAdministrators,
+} from "./notificationController.js";
+
 // Create a new lost or found report
 export const createReport = async (req, res) => {
   try {
@@ -33,7 +38,6 @@ export const createReport = async (req, res) => {
       });
     }
 
-    // Get the uploaded photograph's public path
     const imageUrl = req.file
       ? `/uploads/${req.file.filename}`
       : null;
@@ -56,9 +60,36 @@ export const createReport = async (req, res) => {
       ]
     );
 
+    const reportId = result.insertId;
+
+    // Notify the student who submitted the report
+    try {
+      await createNotification({
+        userId: req.user.id,
+        title: "Report Submitted Successfully",
+        message: `Your ${reportType} item report "${title.trim()}" has been submitted successfully.`,
+        type: "report_submitted",
+        reportId,
+      });
+    } catch (notificationError) {
+      console.error("Student report notification error:", notificationError);
+    }
+
+    // Notify all administrators about the new report
+    try {
+      await notifyAdministrators({
+        title: "New Item Report Submitted",
+        message: `A new ${reportType} item report "${title.trim()}" requires attention.`,
+        type: "new_report",
+        reportId,
+      });
+    } catch (notificationError) {
+      console.error("Administrator report notification error:", notificationError);
+    }
+
     return res.status(201).json({
       message: "Report submitted successfully.",
-      reportId: result.insertId,
+      reportId,
       imageUrl,
     });
   } catch (error) {
@@ -154,6 +185,7 @@ export const getMyReports = async (req, res) => {
         title,
         category,
         description,
+        private_details,
         location,
         incident_date,
         image_url,
@@ -187,7 +219,18 @@ export const updateReport = async (req, res) => {
       incidentDate,
     } = req.body;
 
-    // Only replace the photograph when a new one is uploaded
+    if (
+      !title ||
+      !category ||
+      !description ||
+      !location ||
+      !incidentDate
+    ) {
+      return res.status(400).json({
+        message: "Please provide all required report information.",
+      });
+    }
+
     const imageUrl = req.file
       ? `/uploads/${req.file.filename}`
       : null;
@@ -197,17 +240,17 @@ export const updateReport = async (req, res) => {
        SET title = ?,
            category = ?,
            description = ?,
-           private_details = ?,
+           private_details = COALESCE(?, private_details),
            location = ?,
            incident_date = ?,
            image_url = COALESCE(?, image_url)
        WHERE id = ? AND user_id = ? AND status = 'active'`,
       [
-        title,
+        title.trim(),
         category,
-        description,
+        description.trim(),
         privateDetails || null,
-        location,
+        location.trim(),
         incidentDate,
         imageUrl,
         req.params.id,
@@ -237,6 +280,22 @@ export const updateReport = async (req, res) => {
 // Close a report belonging to the logged-in student
 export const closeReport = async (req, res) => {
   try {
+    // Retrieve the report before closing it
+    const [reports] = await pool.execute(
+      `SELECT id, title
+       FROM reports
+       WHERE id = ? AND user_id = ? AND status = 'active'`,
+      [req.params.id, req.user.id]
+    );
+
+    if (reports.length === 0) {
+      return res.status(404).json({
+        message: "Report not found or cannot be closed.",
+      });
+    }
+
+    const report = reports[0];
+
     const [result] = await pool.execute(
       `UPDATE reports
        SET status = 'closed'
@@ -248,6 +307,19 @@ export const closeReport = async (req, res) => {
       return res.status(404).json({
         message: "Report not found or cannot be closed.",
       });
+    }
+
+    // Notify the student who owns the report
+    try {
+      await createNotification({
+        userId: req.user.id,
+        title: "Report Closed",
+        message: `Your report "${report.title}" has been successfully closed.`,
+        type: "report_closed",
+        reportId: report.id,
+      });
+    } catch (notificationError) {
+      console.error("Report closure notification error:", notificationError);
     }
 
     return res.status(200).json({

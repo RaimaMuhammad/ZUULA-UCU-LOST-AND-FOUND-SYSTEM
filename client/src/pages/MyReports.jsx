@@ -1,65 +1,211 @@
+
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
+import StudentTopbar from "../components/layout/StudentTopbar";
+import StudentSidebar from "../components/layout/StudentSidebar";
+
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
+const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, "");
+
 export default function MyReports() {
-  const reports = [
-    {
-      id: 1,
-      name: "Blue Water Bottle",
-      type: "Found",
-      category: "Bottles",
-      date: "18 Nov 2026",
-      status: "Active",
-    },
-    {
-      id: 2,
-      name: "Black Backpack",
-      type: "Lost",
-      category: "Bags",
-      date: "15 Nov 2026",
-      status: "Active",
-    },
-    {
-      id: 3,
-      name: "Scientific Calculator",
-      type: "Lost",
-      category: "Electronics",
-      date: "10 Nov 2026",
-      status: "Returned",
-    },
-  ];
+  const [reports, setReports] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const fetchMyReports = async () => {
+      try {
+        setLoading(true);
+        setError("");
+
+        const response = await fetch(`${API_BASE_URL}/reports/my`, {
+          method: "GET",
+          credentials: "include",
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Unable to load your reports.");
+        }
+
+        const reportList = Array.isArray(data)
+          ? data
+          : data.reports || [];
+
+        setReports(reportList);
+      } catch (err) {
+        setError(err.message || "Something went wrong while loading reports.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMyReports();
+  }, []);
+
+  const getImageUrl = (imageUrl) => {
+    if (!imageUrl) return "";
+
+    if (
+      imageUrl.startsWith("http://") ||
+      imageUrl.startsWith("https://")
+    ) {
+      return imageUrl;
+    }
+
+    return `${API_ORIGIN}${imageUrl.startsWith("/") ? "" : "/"}${imageUrl}`;
+  };
+
+  const formatDate = (dateValue) => {
+    if (!dateValue) return "Not provided";
+
+    const date = new Date(dateValue);
+
+    if (Number.isNaN(date.getTime())) return "Not provided";
+
+    return date.toLocaleString("en-US", {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+  };
+
+  const getReportNumber = (report) => {
+    const prefix =
+      String(report.report_type || "").toLowerCase() === "found"
+        ? "F"
+        : "L";
+
+    const id = String(report.id || "").padStart(3, "0");
+
+    return `#${prefix}-${id}`;
+  };
+
+  const getStatus = (status) => {
+    if (!status) return "Pending";
+
+    return status.charAt(0).toUpperCase() + status.slice(1);
+  };
 
   return (
-    <div className="my-reports-page">
-      <div className="page-heading">
-        <div>
-          <h1>My Reports</h1>
-          <p>View and manage the items you have reported.</p>
-        </div>
+    <div className="student-dashboard my-reports-page">
+      <StudentTopbar />
 
-        <Link to="/report-item" className="primary-button">
-          Report New Item
-        </Link>
-      </div>
+      <div className="student-dashboard-body">
+        <StudentSidebar />
 
-      <div className="reports-list">
-        {reports.map((report) => (
-          <article className="report-card" key={report.id}>
-            <div className="report-card-image">Item Image</div>
+        <main className="student-dashboard-content my-reports-content">
+          <div className="my-reports-heading">
+            <div>
+              <h1>My reports</h1>
+              <p>Keep track of the items you have reported.</p>
+            </div>
+          </div>
 
-            <div className="report-card-information">
-              <h3>{report.name}</h3>
-              <p>{report.type} Item · {report.category}</p>
-              <p>Reported: {report.date}</p>
-              <span className={`report-status ${report.status.toLowerCase()}`}>
-                {report.status}
-              </span>
+          <div className="my-reports-toolbar">
+            <div className="my-reports-tabs">
+              <Link to="/my-claims" className="my-reports-tab">
+                My claims
+              </Link>
+
+              <Link
+                to="/my-reports"
+                className="my-reports-tab active"
+              >
+                My reports
+              </Link>
             </div>
 
-            <div className="report-card-actions">
-              <Link to={`/items/${report.id}`}>View</Link>
-            </div>
-          </article>
-        ))}
+            <Link to="/report-item" className="my-reports-new-button">
+              New report
+            </Link>
+          </div>
+
+          <section className="my-reports-list">
+            {loading && (
+              <div className="my-reports-message">
+                Loading your reports...
+              </div>
+            )}
+
+            {!loading && error && (
+              <div className="my-reports-message my-reports-error">
+                {error}
+              </div>
+            )}
+
+            {!loading && !error && reports.length === 0 && (
+              <div className="my-reports-empty">
+                <h2>You have not submitted any reports yet.</h2>
+                <p>
+                  When you report a lost or found item, it will appear here.
+                </p>
+                <Link to="/report-item" className="my-reports-new-button">
+                  Report an item
+                </Link>
+              </div>
+            )}
+
+            {!loading &&
+              !error &&
+              reports.map((report) => {
+                const imageUrl = getImageUrl(report.image_url);
+
+                return (
+                  <article className="my-report-card" key={report.id}>
+                    <div className="my-report-image">
+                      {imageUrl ? (
+                        <img
+                          src={imageUrl}
+                          alt={report.title || "Reported item"}
+                        />
+                      ) : (
+                        <span>No image available</span>
+                      )}
+                    </div>
+
+                    <div className="my-report-information">
+                      <h2>{report.title}</h2>
+
+                      <div className="my-report-details">
+                        <span>Date</span>
+                        <p>{formatDate(report.incident_date || report.created_at)}</p>
+
+                        <span>Location</span>
+                        <p>{report.location || "Not provided"}</p>
+
+                        <span>Category</span>
+                        <p>{report.category || "Not provided"}</p>
+
+                        <span>Status</span>
+                        <p>{getStatus(report.status)}</p>
+                      </div>
+                    </div>
+
+                    <div className="my-report-reference">
+                      {getReportNumber(report)}
+                    </div>
+
+                    <div className="my-report-actions">
+                      <Link
+                        to="/report-item"
+                        state={{ report }}
+                        className="my-report-edit-button"
+                      >
+                        Edit report
+                      </Link>
+                    </div>
+                  </article>
+                );
+              })}
+          </section>
+        </main>
       </div>
     </div>
   );

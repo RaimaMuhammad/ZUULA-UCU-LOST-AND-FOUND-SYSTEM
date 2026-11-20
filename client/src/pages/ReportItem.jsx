@@ -1,6 +1,6 @@
 
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import StudentTopbar from "../components/layout/StudentTopbar";
 import StudentSidebar from "../components/layout/StudentSidebar";
@@ -8,9 +8,16 @@ import StudentSidebar from "../components/layout/StudentSidebar";
 const API_BASE_URL =
   import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
+const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, "");
+
 export default function ReportItem() {
   const navigate = useNavigate();
+  const locationState = useLocation();
   const fileInputRef = useRef(null);
+
+  // A report passed through navigation state means edit mode.
+  const editingReport = locationState.state?.report || null;
+  const isEditing = Boolean(editingReport);
 
   const [reportType, setReportType] = useState("Lost");
   const [title, setTitle] = useState("");
@@ -25,13 +32,59 @@ export default function ReportItem() {
 
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState("");
+  const [originalImage, setOriginalImage] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // Load the selected report when opening the page in edit mode.
+  useEffect(() => {
+    if (!editingReport) return;
+
+    setReportType(
+      String(editingReport.report_type || "lost").toLowerCase() === "found"
+        ? "Found"
+        : "Lost"
+    );
+
+    setTitle(editingReport.title || "");
+    setCategory(editingReport.category || "");
+    setDescription(editingReport.description || "");
+    setLocation(editingReport.location || "");
+
+    // Convert the saved date into the form's date and time fields.
+    if (editingReport.incident_date) {
+      const savedDate = new Date(editingReport.incident_date);
+
+      if (!Number.isNaN(savedDate.getTime())) {
+        setDay(String(savedDate.getDate()).padStart(2, "0"));
+        setMonth(String(savedDate.getMonth() + 1).padStart(2, "0"));
+        setYear(String(savedDate.getFullYear()));
+        setTime(
+          `${String(savedDate.getHours()).padStart(2, "0")}:${String(
+            savedDate.getMinutes()
+          ).padStart(2, "0")}`
+        );
+      }
+    }
+
+    // Display the existing report photograph.
+    if (editingReport.image_url) {
+      const existingImage = editingReport.image_url.startsWith("http")
+        ? editingReport.image_url
+        : `${API_ORIGIN}${
+            editingReport.image_url.startsWith("/") ? "" : "/"
+          }${editingReport.image_url}`;
+
+      setOriginalImage(existingImage);
+      setImagePreview(existingImage);
+    }
+  }, [editingReport]);
+
+  // Clean up only temporary browser image previews.
   useEffect(() => {
     return () => {
-      if (imagePreview) {
+      if (imagePreview.startsWith("blob:")) {
         URL.revokeObjectURL(imagePreview);
       }
     };
@@ -69,7 +122,7 @@ export default function ReportItem() {
 
   function removeImage() {
     setImage(null);
-    setImagePreview("");
+    setImagePreview(originalImage);
 
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -109,7 +162,10 @@ export default function ReportItem() {
       return;
     }
 
-    const formattedDate = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}T${time}`;
+    const formattedDate = `${year}-${month.padStart(
+      2,
+      "0"
+    )}-${day.padStart(2, "0")}T${time}`;
 
     const formData = new FormData();
 
@@ -120,6 +176,7 @@ export default function ReportItem() {
     formData.append("location", location.trim());
     formData.append("incidentDate", formattedDate);
 
+    // Only attach a photograph if the student selected a new one.
     if (image) {
       formData.append("image", image);
     }
@@ -127,8 +184,12 @@ export default function ReportItem() {
     try {
       setLoading(true);
 
-      const response = await fetch(`${API_BASE_URL}/reports`, {
-        method: "POST",
+      const url = isEditing
+        ? `${API_BASE_URL}/reports/${editingReport.id}`
+        : `${API_BASE_URL}/reports`;
+
+      const response = await fetch(url, {
+        method: isEditing ? "PUT" : "POST",
         credentials: "include",
         body: formData,
       });
@@ -136,17 +197,30 @@ export default function ReportItem() {
       const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        throw new Error(data.message || "Unable to submit your report.");
+        throw new Error(
+          data.message ||
+            (isEditing
+              ? "Unable to update your report."
+              : "Unable to submit your report.")
+        );
       }
 
-      // REPORT SAVED SUCCESSFULLY: OPEN CONFIRMATION PAGE
-      navigate("/report-submitted", {
-        replace: true,
-        state: {
-          reportType,
-          report: data.report || null,
-        },
-      });
+      if (isEditing) {
+        // Updating an existing report does not create a new report.
+        navigate("/my-reports", {
+          replace: true,
+          state: { updated: true },
+        });
+      } else {
+        // New reports continue to use the confirmation page.
+        navigate("/report-submitted", {
+          replace: true,
+          state: {
+            reportType,
+            report: data.report || null,
+          },
+        });
+      }
     } catch (err) {
       setError(err.message || "Unable to connect to the server.");
       setLoading(false);
@@ -164,8 +238,13 @@ export default function ReportItem() {
           <div className="report-item-page">
 
             <div className="report-page-heading">
-              <h1>Report item</h1>
-              <p>Add the item details so its owner can find it.</p>
+              <h1>{isEditing ? "Edit report" : "Report item"}</h1>
+
+              <p>
+                {isEditing
+                  ? "Update the information about your reported item."
+                  : "Add the item details so its owner can find it."}
+              </p>
             </div>
 
             <form className="report-form" onSubmit={handleSubmit}>
@@ -180,6 +259,7 @@ export default function ReportItem() {
                       reportType === "Lost" ? "selected" : ""
                     }`}
                     onClick={() => setReportType("Lost")}
+                    disabled={isEditing}
                   >
                     Lost Item
                   </button>
@@ -190,6 +270,7 @@ export default function ReportItem() {
                       reportType === "Found" ? "selected" : ""
                     }`}
                     onClick={() => setReportType("Found")}
+                    disabled={isEditing}
                   >
                     Found Item
                   </button>
@@ -200,7 +281,7 @@ export default function ReportItem() {
                     {imagePreview ? (
                       <img
                         src={imagePreview}
-                        alt="Selected item"
+                        alt="Reported item"
                       />
                     ) : (
                       <div className="report-photo-placeholder">
@@ -266,7 +347,9 @@ export default function ReportItem() {
                     recognise their belongings.
                   </p>
 
-                  <small>JPG, PNG, WEBP or GIF. Maximum size: 5MB.</small>
+                  <small>
+                    JPG, PNG, WEBP or GIF. Maximum size: 5MB.
+                  </small>
                 </div>
               </section>
 
@@ -275,6 +358,7 @@ export default function ReportItem() {
 
                 <div className="report-field report-field-full">
                   <label htmlFor="item-title">Item name</label>
+
                   <input
                     id="item-title"
                     type="text"
@@ -381,11 +465,7 @@ export default function ReportItem() {
                   <textarea
                     id="item-description"
                     rows="4"
-                    placeholder={
-                      reportType === "Lost"
-                        ? "Where was it last seen? Is there anything distinctive about it?"
-                        : "Where was it found? Is there anything distinctive about it?"
-                    }
+                    placeholder="Describe the item and provide any useful details."
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     required
@@ -393,7 +473,10 @@ export default function ReportItem() {
                 </div>
 
                 {error && (
-                  <div className="report-error-message" role="alert">
+                  <div
+                    className="report-error-message"
+                    role="alert"
+                  >
                     {error}
                   </div>
                 )}
@@ -404,8 +487,12 @@ export default function ReportItem() {
                   disabled={loading}
                 >
                   {loading
-                    ? "Submitting report..."
-                    : `Add to ${reportType.toLowerCase()}`}
+                    ? isEditing
+                      ? "Saving changes..."
+                      : "Submitting report..."
+                    : isEditing
+                      ? "Save Changes"
+                      : `Add to ${reportType.toLowerCase()}`}
                 </button>
 
               </section>

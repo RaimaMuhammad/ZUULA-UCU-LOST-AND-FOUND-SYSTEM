@@ -10,6 +10,10 @@ import { fileURLToPath } from "url";
 
 import authRoutes from "./routes/authRoutes.js";
 import reportRoutes from "./routes/reportRoutes.js";
+import claimRoutes from "./routes/claimRoutes.js";
+import notificationRoutes from "./routes/notificationRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
+
 import { testDatabaseConnection } from "./config/db.js";
 
 const app = express();
@@ -40,15 +44,17 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// Serve uploaded photographs
-app.use(
-  "/uploads",
-  express.static(path.join(__dirname, "../uploads"))
-);
+// Serve uploaded photographs from server/uploads
+const uploadDirectory = path.resolve(__dirname, "../uploads");
+
+app.use("/uploads", express.static(uploadDirectory));
 
 // API routes
 app.use("/api/auth", authRoutes);
 app.use("/api/reports", reportRoutes);
+app.use("/api/claims", claimRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/admin", adminRoutes);
 
 // Root endpoint
 app.get("/", (req, res) => {
@@ -72,6 +78,7 @@ const startServer = async () => {
 
     app.listen(PORT, () => {
       console.log(`ZUULA server running on http://localhost:${PORT}`);
+      console.log(`Serving uploaded images from: ${uploadDirectory}`);
     });
   } catch (error) {
     console.error("Server startup failed:", error.message);

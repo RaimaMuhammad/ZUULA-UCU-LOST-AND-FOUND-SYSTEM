@@ -168,3 +168,50 @@ ORDER BY id DESC
 LIMIT 5;
 
 Select * from reports;
+
+
+USE zuula_db;
+
+ALTER TABLE claims
+ADD COLUMN evidence_image VARCHAR(500) NULL
+AFTER evidence;
+
+
+
+USE zuula_db;
+
+CREATE TABLE notifications (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    type ENUM(
+        'report_submitted',
+        'new_report',
+        'claim_submitted',
+        'new_claim',
+        'claim_approved',
+        'claim_rejected',
+        'item_ready',
+        'report_closed'
+    ) NOT NULL,
+    related_report_id INT NULL,
+    related_claim_id INT NULL,
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_notification_user
+        FOREIGN KEY (user_id) REFERENCES users(id)
+        ON DELETE CASCADE,
+
+    CONSTRAINT fk_notification_report
+        FOREIGN KEY (related_report_id) REFERENCES reports(id)
+        ON DELETE SET NULL,
+
+    CONSTRAINT fk_notification_claim
+        FOREIGN KEY (related_claim_id) REFERENCES claims(id)
+        ON DELETE SET NULL,
+
+    INDEX idx_notifications_user_created (user_id, created_at),
+    INDEX idx_notifications_user_read (user_id, is_read)
+);
