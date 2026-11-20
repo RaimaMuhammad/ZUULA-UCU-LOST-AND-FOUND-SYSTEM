@@ -62,7 +62,6 @@ export const createReport = async (req, res) => {
 
     const reportId = result.insertId;
 
-    // Notify the student who submitted the report
     try {
       await createNotification({
         userId: req.user.id,
@@ -75,7 +74,6 @@ export const createReport = async (req, res) => {
       console.error("Student report notification error:", notificationError);
     }
 
-    // Notify all administrators about the new report
     try {
       await notifyAdministrators({
         title: "New Item Report Submitted",
@@ -101,7 +99,7 @@ export const createReport = async (req, res) => {
   }
 };
 
-// Get all active reports for public listings
+// Get all reports for the administrator
 export const getAllReports = async (req, res) => {
   try {
     const [reports] = await pool.execute(
@@ -120,7 +118,6 @@ export const getAllReports = async (req, res) => {
         u.full_name AS reporter_name
        FROM reports r
        JOIN users u ON r.user_id = u.id
-       WHERE r.status = 'active'
        ORDER BY r.created_at DESC`
     );
 
@@ -175,7 +172,7 @@ export const getReportById = async (req, res) => {
   }
 };
 
-// Get reports submitted by the logged-in student
+// Get reports belonging to the logged-in student
 export const getMyReports = async (req, res) => {
   try {
     const [reports] = await pool.execute(
@@ -280,7 +277,6 @@ export const updateReport = async (req, res) => {
 // Close a report belonging to the logged-in student
 export const closeReport = async (req, res) => {
   try {
-    // Retrieve the report before closing it
     const [reports] = await pool.execute(
       `SELECT id, title
        FROM reports
@@ -309,7 +305,6 @@ export const closeReport = async (req, res) => {
       });
     }
 
-    // Notify the student who owns the report
     try {
       await createNotification({
         userId: req.user.id,

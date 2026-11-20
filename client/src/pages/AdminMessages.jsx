@@ -1,257 +1,430 @@
-import { useState } from "react";
+
+import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 export default function AdminMessages() {
-  const initialConversations = [
-    {
-      id: 1,
-      name: "Jane Doe",
-      studentNumber: "2026-00001",
-      subject: "Claim for Blue Water Bottle",
-      preview: "I wanted to follow up on my claim.",
-      unread: true,
-      messages: [
-        {
-          id: 1,
-          sender: "student",
-          text: "Hello, I submitted a claim for a blue water bottle.",
-          time: "10:15 AM",
-        },
-        {
-          id: 2,
-          sender: "admin",
-          text: "Hello. We have received your claim and it is under review.",
-          time: "10:20 AM",
-        },
-        {
-          id: 3,
-          sender: "student",
-          text: "I wanted to follow up on my claim. Is there any update?",
-          time: "10:35 AM",
-        },
-      ],
-    },
-    {
-      id: 2,
-      name: "John Smith",
-      studentNumber: "2026-00002",
-      subject: "Reporting a Found Item",
-      preview: "Where should I take the item?",
-      unread: false,
-      messages: [
-        {
-          id: 1,
-          sender: "student",
-          text: "I found a wallet near the cafeteria. Where should I take it?",
-          time: "Yesterday",
-        },
-      ],
-    },
-    {
-      id: 3,
-      name: "Mary Allen",
-      studentNumber: "2026-00003",
-      subject: "Account Assistance",
-      preview: "Thank you for your assistance.",
-      unread: false,
-      messages: [
-        {
-          id: 1,
-          sender: "student",
-          text: "I am having trouble accessing my account.",
-          time: "Yesterday",
-        },
-        {
-          id: 2,
-          sender: "admin",
-          text: "Please try resetting your password.",
-          time: "Yesterday",
-        },
-        {
-          id: 3,
-          sender: "student",
-          text: "Thank you for your assistance.",
-          time: "Yesterday",
-        },
-      ],
-    },
-  ];
+  const navigate = useNavigate();
 
-  const [conversations, setConversations] = useState(initialConversations);
-  const [activeConversationId, setActiveConversationId] = useState(1);
-  const [message, setMessage] = useState("");
+  const [notifications, setNotifications] = useState([]);
+  const [activeNotification, setActiveNotification] = useState(null);
   const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const activeConversation = conversations.find(
-    (conversation) => conversation.id === activeConversationId
-  );
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/notifications`, {
+        credentials: "include",
+      });
 
-  const filteredConversations = conversations.filter((conversation) =>
-    conversation.name.toLowerCase().includes(search.toLowerCase())
-  );
+      if (!response.ok) {
+        throw new Error("Unable to load notifications.");
+      }
 
-  function selectConversation(id) {
-    setActiveConversationId(id);
+      const data = await response.json();
+      const allNotifications = Array.isArray(data)
+        ? data
+        : data.notifications || [];
 
-    setConversations((previous) =>
-      previous.map((conversation) =>
-        conversation.id === id
-          ? { ...conversation, unread: false }
-          : conversation
-      )
+      const adminNotifications = allNotifications.filter((notification) =>
+        ["new_claim", "new_report"].includes(notification.type)
+      );
+
+      setNotifications(adminNotifications);
+
+      setActiveNotification((current) => {
+        if (!adminNotifications.length) return null;
+
+        if (current) {
+          return (
+            adminNotifications.find((item) => item.id === current.id) ||
+            adminNotifications[0]
+          );
+        }
+
+        return adminNotifications[0];
+      });
+
+      setError("");
+    } catch (err) {
+      setError(err.message || "Something went wrong while loading messages.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchNotifications();
+
+    const interval = setInterval(fetchNotifications, 15000);
+
+    return () => clearInterval(interval);
+  }, [fetchNotifications]);
+
+  const unreadCount = notifications.filter(
+    (notification) => !notification.is_read
+  ).length;
+
+  const filteredNotifications = notifications.filter((notification) => {
+    const searchText = search.toLowerCase();
+
+    return (
+      notification.title?.toLowerCase().includes(searchText) ||
+      notification.message?.toLowerCase().includes(searchText) ||
+      String(notification.related_claim_id || "").includes(searchText) ||
+      String(notification.related_report_id || "").includes(searchText)
     );
-  }
+  });
 
-  function handleSendMessage(e) {
-    e.preventDefault();
+  const formatDate = (date) => {
+    if (!date) return "Date unavailable";
 
-    if (!message.trim() || !activeConversation) return;
+    const parsedDate = new Date(date);
 
-    const newMessage = {
-      id: Date.now(),
-      sender: "admin",
-      text: message.trim(),
-      time: new Date().toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-    };
+    if (Number.isNaN(parsedDate.getTime())) return "Date unavailable";
 
-    setConversations((previous) =>
-      previous.map((conversation) =>
-        conversation.id === activeConversationId
-          ? {
-              ...conversation,
-              preview: newMessage.text,
-              messages: [...conversation.messages, newMessage],
-            }
-          : conversation
-      )
-    );
+    return parsedDate.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  };
 
-    setMessage("");
-  }
+  const formatTime = (date) => {
+    if (!date) return "";
+
+    const parsedDate = new Date(date);
+
+    if (Number.isNaN(parsedDate.getTime())) return "";
+
+    return parsedDate.toLocaleTimeString("en-GB", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const getCategory = (type) => {
+    if (type === "new_claim") return "New Claim";
+    if (type === "new_report") return "New Report";
+    return "Notification";
+  };
+
+  const handleSelectNotification = async (notification) => {
+    setActiveNotification(notification);
+
+    if (notification.is_read) return;
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/notifications/${notification.id}/read`,
+        {
+          method: "PATCH",
+          credentials: "include",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Unable to mark notification as read.");
+      }
+
+      setNotifications((previous) =>
+        previous.map((item) =>
+          item.id === notification.id ? { ...item, is_read: true } : item
+        )
+      );
+
+      setActiveNotification((previous) =>
+        previous?.id === notification.id
+          ? { ...previous, is_read: true }
+          : previous
+      );
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleMarkAllRead = async () => {
+    if (unreadCount === 0) return;
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/notifications/read-all`,
+        {
+          method: "PATCH",
+          credentials: "include",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Unable to mark notifications as read.");
+      }
+
+      setNotifications((previous) =>
+        previous.map((item) => ({ ...item, is_read: true }))
+      );
+
+      setActiveNotification((previous) =>
+        previous ? { ...previous, is_read: true } : null
+      );
+
+      setError("");
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleRelatedAction = () => {
+    if (!activeNotification) return;
+
+    if (
+      activeNotification.type === "new_claim" &&
+      activeNotification.related_claim_id
+    ) {
+      navigate(
+        `/admin/review-claim/${activeNotification.related_claim_id}`
+      );
+      return;
+    }
+
+    if (
+      activeNotification.type === "new_report" &&
+      activeNotification.related_report_id
+    ) {
+      navigate(
+        `/admin/reports/${activeNotification.related_report_id}`
+      );
+    }
+  };
+
+  const getActionLabel = () => {
+    if (activeNotification?.type === "new_claim") return "Review Claim";
+    if (activeNotification?.type === "new_report") return "View Report";
+    return "View Details";
+  };
+
+  const hasRelatedAction =
+    (activeNotification?.type === "new_claim" &&
+      activeNotification?.related_claim_id) ||
+    (activeNotification?.type === "new_report" &&
+      activeNotification?.related_report_id);
 
   return (
     <div className="admin-messages-page">
-      <div className="page-heading">
+      <div className="admin-messages-heading">
         <div>
           <h1>Messages</h1>
-          <p>Communicate with students about lost and found items.</p>
+          <p>Review new claims and reports submitted by students.</p>
+        </div>
+
+        <button
+          type="button"
+          className="admin-mark-all-button"
+          onClick={handleMarkAllRead}
+          disabled={unreadCount === 0}
+        >
+          Mark All as Read
+        </button>
+      </div>
+
+      {error && <div className="admin-messages-error">{error}</div>}
+
+      <div className="admin-message-summary">
+        <div className="admin-summary-card">
+          <span>Total Notifications</span>
+          <strong>{notifications.length}</strong>
+        </div>
+
+        <div className="admin-summary-card unread-summary">
+          <span>Unread Notifications</span>
+          <strong>{unreadCount}</strong>
+        </div>
+
+        <div className="admin-summary-card">
+          <span>New Claims</span>
+          <strong>
+            {notifications.filter((item) => item.type === "new_claim").length}
+          </strong>
+        </div>
+
+        <div className="admin-summary-card">
+          <span>New Reports</span>
+          <strong>
+            {notifications.filter((item) => item.type === "new_report").length}
+          </strong>
         </div>
       </div>
 
-      <div className="admin-messages-container">
-        {/* Conversations list */}
-        <aside className="admin-conversations-panel">
-          <div className="conversations-heading">
-            <h2>Conversations</h2>
-            <span>{conversations.length}</span>
-          </div>
+      <div className="admin-inbox-layout">
+        <section className="admin-inbox-list-panel">
+          <div className="admin-inbox-list-header">
+            <div>
+              <h2>Notification Inbox</h2>
+              <span>{filteredNotifications.length} notifications</span>
+            </div>
 
-          <div className="conversation-search">
             <input
               type="search"
-              placeholder="Search students..."
+              className="admin-inbox-search"
+              placeholder="Search notifications..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(event) => setSearch(event.target.value)}
             />
           </div>
 
-          <div className="admin-conversations-list">
-            {filteredConversations.length > 0 ? (
-              filteredConversations.map((conversation) => (
+          <div className="admin-inbox-list">
+            {loading ? (
+              <div className="admin-inbox-empty">Loading notifications...</div>
+            ) : filteredNotifications.length === 0 ? (
+              <div className="admin-inbox-empty">
+                {search
+                  ? "No notifications match your search."
+                  : "There are no notifications to display."}
+              </div>
+            ) : (
+              filteredNotifications.map((notification) => (
                 <button
                   type="button"
-                  key={conversation.id}
-                  className={`admin-conversation-item ${
-                    activeConversationId === conversation.id ? "active" : ""
-                  }`}
-                  onClick={() => selectConversation(conversation.id)}
+                  key={notification.id}
+                  className={`admin-inbox-item ${
+                    activeNotification?.id === notification.id
+                      ? "active"
+                      : ""
+                  } ${!notification.is_read ? "unread" : ""}`}
+                  onClick={() => handleSelectNotification(notification)}
                 >
-                  <div className="conversation-avatar">
-                    {conversation.name.charAt(0)}
-                  </div>
-
-                  <div className="conversation-details">
-                    <div className="conversation-name-row">
-                      <strong>{conversation.name}</strong>
-                      {conversation.unread && (
-                        <span className="unread-indicator"></span>
-                      )}
-                    </div>
-
-                    <span className="conversation-subject">
-                      {conversation.subject}
+                  <div className="admin-inbox-item-top">
+                    <span
+                      className={`admin-inbox-category ${
+                        notification.type === "new_claim"
+                          ? "claim-category"
+                          : "report-category"
+                      }`}
+                    >
+                      {getCategory(notification.type)}
                     </span>
 
-                    <p>{conversation.preview}</p>
+                    <span className="admin-inbox-date">
+                      {formatDate(notification.created_at)}
+                    </span>
                   </div>
+
+                  <div className="admin-inbox-item-title">
+                    <strong>{notification.title}</strong>
+                    {!notification.is_read && (
+                      <span className="admin-unread-dot" />
+                    )}
+                  </div>
+
+                  <p>
+                    {notification.message?.length > 105
+                      ? `${notification.message.slice(0, 105)}...`
+                      : notification.message}
+                  </p>
+
+                  <span className="admin-inbox-item-time">
+                    {formatTime(notification.created_at)}
+                  </span>
                 </button>
               ))
-            ) : (
-              <p className="empty-conversations">
-                No conversations found.
-              </p>
             )}
           </div>
-        </aside>
+        </section>
 
-        {/* Active conversation */}
-        <section className="admin-chat-panel">
-          {activeConversation ? (
+        <section className="admin-inbox-detail-panel">
+          {!activeNotification ? (
+            <div className="admin-inbox-detail-empty">
+              <h2>No Notification Selected</h2>
+              <p>Select a notification from the inbox to view its details.</p>
+            </div>
+          ) : (
             <>
-              <header className="admin-chat-header">
-                <div className="conversation-avatar">
-                  {activeConversation.name.charAt(0)}
-                </div>
-
+              <div className="admin-detail-header">
                 <div>
-                  <h2>{activeConversation.name}</h2>
+                  <span
+                    className={`admin-inbox-category ${
+                      activeNotification.type === "new_claim"
+                        ? "claim-category"
+                        : "report-category"
+                    }`}
+                  >
+                    {getCategory(activeNotification.type)}
+                  </span>
+
+                  <h2>{activeNotification.title}</h2>
                   <p>
-                    Student Number: {activeConversation.studentNumber}
+                    Received on {formatDate(activeNotification.created_at)}
+                    {formatTime(activeNotification.created_at) &&
+                      ` at ${formatTime(activeNotification.created_at)}`}
                   </p>
                 </div>
-              </header>
 
-              <div className="admin-chat-subject">
-                <span>Subject:</span> {activeConversation.subject}
+                <span
+                  className={`admin-read-label ${
+                    activeNotification.is_read ? "read" : "unread-label"
+                  }`}
+                >
+                  {activeNotification.is_read ? "Read" : "Unread"}
+                </span>
               </div>
 
-              <div className="admin-chat-messages">
-                {activeConversation.messages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={`admin-chat-message ${msg.sender}`}
-                  >
-                    <div className="message-bubble">
-                      <p>{msg.text}</p>
-                      <span>{msg.time}</span>
-                    </div>
+              <div className="admin-detail-divider" />
+
+              <div className="admin-notification-source">
+                <span>FROM</span>
+                <strong>ZUULA System Notification</strong>
+              </div>
+
+              <div className="admin-notification-message">
+                <h3>Notification Details</h3>
+                <p>{activeNotification.message}</p>
+              </div>
+
+              <div className="admin-notification-reference">
+                <h3>Related Reference</h3>
+
+                {activeNotification.related_claim_id ? (
+                  <div className="admin-reference-row">
+                    <span>Claim Reference</span>
+                    <strong>#{activeNotification.related_claim_id}</strong>
                   </div>
-                ))}
+                ) : null}
+
+                {activeNotification.related_report_id ? (
+                  <div className="admin-reference-row">
+                    <span>Report Reference</span>
+                    <strong>#{activeNotification.related_report_id}</strong>
+                  </div>
+                ) : null}
+
+                {!activeNotification.related_claim_id &&
+                  !activeNotification.related_report_id && (
+                    <p className="admin-no-reference">
+                      No related record is available.
+                    </p>
+                  )}
               </div>
 
-              <form
-                className="admin-chat-input"
-                onSubmit={handleSendMessage}
-              >
-                <input
-                  type="text"
-                  placeholder="Write a message..."
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                />
+              <div className="admin-detail-actions">
+                <span>
+                  {activeNotification.is_read
+                    ? "This notification has been read."
+                    : "This notification has been marked as unread."}
+                </span>
 
-                <button type="submit" disabled={!message.trim()}>
-                  Send
-                </button>
-              </form>
+                {hasRelatedAction && (
+                  <button
+                    type="button"
+                    className="admin-related-action-button"
+                    onClick={handleRelatedAction}
+                  >
+                    {getActionLabel()}
+                  </button>
+                )}
+              </div>
             </>
-          ) : (
-            <div className="no-conversation-selected">
-              <h2>Select a Conversation</h2>
-              <p>Choose a student conversation to view messages.</p>
-            </div>
           )}
         </section>
       </div>

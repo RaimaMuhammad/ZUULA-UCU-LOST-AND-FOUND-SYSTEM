@@ -2,7 +2,7 @@
 import pool from "../config/db.js";
 import { createNotification } from "./notificationController.js";
 
-// Get all claims for administrator review
+// GET ALL CLAIMS FOR ADMINISTRATOR REVIEW
 export const getAllClaims = async (req, res) => {
   try {
     const [claims] = await pool.execute(
@@ -35,6 +35,7 @@ export const getAllClaims = async (req, res) => {
     );
 
     return res.status(200).json({ claims });
+
   } catch (error) {
     console.error("Get all claims error:", error);
 
@@ -44,7 +45,8 @@ export const getAllClaims = async (req, res) => {
   }
 };
 
-// Get one claim for administrator review
+
+// GET ONE CLAIM FOR ADMINISTRATOR REVIEW
 export const getClaimById = async (req, res) => {
   try {
     const [claims] = await pool.execute(
@@ -65,6 +67,8 @@ export const getClaimById = async (req, res) => {
          r.image_url AS item_image,
          r.report_type,
          r.status AS report_status,
+         r.incident_date AS date_found,
+         r.private_details,
          u.full_name AS claimant_name,
          u.email AS claimant_email,
          u.student_number AS claimant_student_number
@@ -84,6 +88,7 @@ export const getClaimById = async (req, res) => {
     return res.status(200).json({
       claim: claims[0],
     });
+
   } catch (error) {
     console.error("Get claim error:", error);
 
@@ -93,8 +98,39 @@ export const getClaimById = async (req, res) => {
   }
 };
 
-// Approve a claim
+
+// APPROVE CLAIM AND SEND ITEM COLLECTION INSTRUCTIONS
 export const approveClaim = async (req, res) => {
+  const {
+    collectionLocation,
+    collectionDate,
+    collectionTime,
+    collectionInstructions,
+  } = req.body || {};
+
+  // Validate required collection location
+  if (
+    !collectionLocation ||
+    typeof collectionLocation !== "string" ||
+    !collectionLocation.trim()
+  ) {
+    return res.status(400).json({
+      message: "Please provide the item collection location.",
+    });
+  }
+
+  // Validate optional collection details
+  if (
+    (collectionDate && typeof collectionDate !== "string") ||
+    (collectionTime && typeof collectionTime !== "string") ||
+    (collectionInstructions &&
+      typeof collectionInstructions !== "string")
+  ) {
+    return res.status(400).json({
+      message: "Invalid collection instructions provided.",
+    });
+  }
+
   const connection = await pool.getConnection();
 
   try {
@@ -142,7 +178,7 @@ export const approveClaim = async (req, res) => {
       });
     }
 
-    // Approve the claim
+    // Update claim status
     await connection.execute(
       `UPDATE claims
        SET status = 'approved',
@@ -153,7 +189,7 @@ export const approveClaim = async (req, res) => {
       [req.user.id, claim.id]
     );
 
-    // Mark the associated report as claimed
+    // Mark associated report as claimed
     await connection.execute(
       `UPDATE reports
        SET status = 'claimed'
@@ -163,25 +199,60 @@ export const approveClaim = async (req, res) => {
 
     await connection.commit();
 
-    // Notify the student who submitted the claim
+    // Build the collection notification
+    const messageParts = [
+      `Your claim for "${claim.item_title}" has been approved.`,
+      "",
+      `Collection Location: ${collectionLocation.trim()}`,
+    ];
+
+    if (collectionDate) {
+      messageParts.push(`Collection Date: ${collectionDate}`);
+    }
+
+    if (collectionTime) {
+      messageParts.push(`Collection Time: ${collectionTime}`);
+    }
+
+    if (
+      collectionInstructions &&
+      collectionInstructions.trim()
+    ) {
+      messageParts.push(
+        `Additional Instructions: ${collectionInstructions.trim()}`
+      );
+    }
+
+    messageParts.push(
+      "",
+      "Please follow the collection instructions when picking up your item."
+    );
+
+    // Send notification to the student
     try {
       await createNotification({
         userId: claim.claimant_id,
-        title: "Claim Approved",
-        message: `Your claim for "${claim.item_title}" has been approved by the administrator.`,
-        type: "claim_approved",
+        title: "Claim Approved - Item Ready for Collection",
+        message: messageParts.join("\n"),
+        type: "item_ready",
         reportId: claim.report_id,
         claimId: claim.id,
       });
+
     } catch (notificationError) {
-      console.error("Claim approval notification error:", notificationError);
+      console.error(
+        "Item collection notification error:",
+        notificationError
+      );
     }
 
     return res.status(200).json({
-      message: "Claim approved successfully.",
+      message:
+        "Claim approved successfully. Collection instructions have been sent to the student.",
       claimId: claim.id,
       status: "approved",
     });
+
   } catch (error) {
     await connection.rollback();
 
@@ -190,12 +261,14 @@ export const approveClaim = async (req, res) => {
     return res.status(500).json({
       message: "Unable to approve claim.",
     });
+
   } finally {
     connection.release();
   }
 };
 
-// Reject a claim
+
+// REJECT CLAIM
 export const rejectClaim = async (req, res) => {
   const connection = await pool.getConnection();
 
@@ -254,7 +327,7 @@ export const rejectClaim = async (req, res) => {
 
     await connection.commit();
 
-    // Notify the student who submitted the claim
+    // Notify the student about the rejected claim
     try {
       await createNotification({
         userId: claim.claimant_id,
@@ -264,8 +337,12 @@ export const rejectClaim = async (req, res) => {
         reportId: claim.report_id,
         claimId: claim.id,
       });
+
     } catch (notificationError) {
-      console.error("Claim rejection notification error:", notificationError);
+      console.error(
+        "Claim rejection notification error:",
+        notificationError
+      );
     }
 
     return res.status(200).json({
@@ -273,6 +350,7 @@ export const rejectClaim = async (req, res) => {
       claimId: claim.id,
       status: "rejected",
     });
+
   } catch (error) {
     await connection.rollback();
 
@@ -281,6 +359,7 @@ export const rejectClaim = async (req, res) => {
     return res.status(500).json({
       message: "Unable to reject claim.",
     });
+
   } finally {
     connection.release();
   }

@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import StudentTopbar from "../components/layout/StudentTopbar";
 import StudentSidebar from "../components/layout/StudentSidebar";
@@ -12,7 +13,7 @@ export default function Messages() {
   const [error, setError] = useState("");
   const [markingAll, setMarkingAll] = useState(false);
 
-  // Fetch notifications
+  // FETCH NOTIFICATIONS
   const fetchNotifications = useCallback(async () => {
     try {
       setLoading(true);
@@ -60,12 +61,12 @@ export default function Messages() {
     fetchNotifications();
   }, [fetchNotifications]);
 
-  // Count unread notifications
+  // COUNT UNREAD NOTIFICATIONS
   const unreadCount = notifications.filter(
     (notification) => !notification.is_read
   ).length;
 
-  // Format date
+  // FORMAT DATE
   const formatDate = (dateValue) => {
     if (!dateValue) return "";
 
@@ -80,7 +81,7 @@ export default function Messages() {
     });
   };
 
-  // Format time
+  // FORMAT TIME
   const formatTime = (dateValue) => {
     if (!dateValue) return "";
 
@@ -95,7 +96,7 @@ export default function Messages() {
     });
   };
 
-  // Notification categories
+  // NOTIFICATION CATEGORIES
   const getNotificationCategory = (type) => {
     const categories = {
       report_submitted: "Report Update",
@@ -111,7 +112,7 @@ export default function Messages() {
     return categories[type] || "Notification";
   };
 
-  // Notification styling classes
+  // NOTIFICATION STYLING
   const getNotificationClass = (type) => {
     if (type === "item_ready") return "pickup";
 
@@ -128,7 +129,7 @@ export default function Messages() {
     return "report-update";
   };
 
-  // Open notification and mark it as read
+  // OPEN NOTIFICATION AND MARK AS READ
   const openNotification = async (notification) => {
     setActiveNotification(notification);
 
@@ -170,7 +171,7 @@ export default function Messages() {
     }
   };
 
-  // Mark all notifications as read
+  // MARK ALL NOTIFICATIONS AS READ
   const markAllAsRead = async () => {
     if (unreadCount === 0) return;
 
@@ -214,20 +215,23 @@ export default function Messages() {
 
   return (
     <div className="student-dashboard">
-      {/* Student Top Bar */}
+
       <StudentTopbar />
 
       <div className="student-dashboard-body">
-        {/* Student Sidebar */}
+
         <StudentSidebar />
 
-        {/* Main Notifications Content */}
         <main className="student-dashboard-content">
+
           <div className="messages-page">
-            {/* Page Heading */}
+
+            {/* PAGE HEADING */}
             <div className="messages-heading">
+
               <div>
                 <h1>Notifications</h1>
+
                 <p>
                   Receive important updates about your reports, claims and
                   collection instructions.
@@ -235,6 +239,7 @@ export default function Messages() {
               </div>
 
               <div className="messages-heading-actions">
+
                 <span className="messages-unread-count">
                   {unreadCount} Unread
                 </span>
@@ -247,10 +252,12 @@ export default function Messages() {
                 >
                   {markingAll ? "Updating..." : "Mark all as read"}
                 </button>
+
               </div>
+
             </div>
 
-            {/* Error Message */}
+            {/* ERROR MESSAGE */}
             {error && (
               <div className="messages-error">
                 {error}
@@ -261,11 +268,14 @@ export default function Messages() {
               </div>
             )}
 
-            {/* Notifications Container */}
+            {/* NOTIFICATIONS CONTAINER */}
             <div className="notifications-container">
-              {/* Notification List */}
+
+              {/* LEFT: NOTIFICATION LIST */}
               <aside className="notification-list-panel">
+
                 <div className="notification-list-header">
+
                   <div>
                     <h2>All Notifications</h2>
 
@@ -277,9 +287,11 @@ export default function Messages() {
                   <span className="notification-total-badge">
                     {notifications.length}
                   </span>
+
                 </div>
 
                 <div className="notification-list">
+
                   {loading ? (
                     <div className="notification-state">
                       Loading notifications...
@@ -295,6 +307,7 @@ export default function Messages() {
                     </div>
                   ) : (
                     notifications.map((notification) => (
+
                       <button
                         type="button"
                         key={notification.id}
@@ -305,7 +318,9 @@ export default function Messages() {
                         } ${!notification.is_read ? "unread" : ""}`}
                         onClick={() => openNotification(notification)}
                       >
+
                         <div className="notification-item-top">
+
                           <span
                             className={`notification-category ${getNotificationClass(
                               notification.type
@@ -320,6 +335,7 @@ export default function Messages() {
                               aria-label="Unread"
                             />
                           )}
+
                         </div>
 
                         <strong>{notification.title}</strong>
@@ -333,17 +349,25 @@ export default function Messages() {
                           {notification.created_at && " · "}
                           {formatTime(notification.created_at)}
                         </small>
+
                       </button>
+
                     ))
                   )}
+
                 </div>
+
               </aside>
 
-              {/* Notification Details */}
+              {/* RIGHT: NOTIFICATION DETAILS */}
               <section className="notification-details">
+
                 {!loading && activeNotification ? (
+
                   <>
+
                     <div className="notification-details-header">
+
                       <span
                         className={`notification-category ${getNotificationClass(
                           activeNotification.type
@@ -355,9 +379,11 @@ export default function Messages() {
                       <span className="notification-sender">
                         ZUULA Notifications
                       </span>
+
                     </div>
 
                     <div className="notification-details-content">
+
                       <h2>{activeNotification.title}</h2>
 
                       <p className="notification-date">
@@ -368,7 +394,9 @@ export default function Messages() {
 
                       {(activeNotification.related_report_id ||
                         activeNotification.related_claim_id) && (
+
                         <div className="notification-item-reference">
+
                           <span>Related Reference</span>
 
                           <strong>
@@ -376,26 +404,40 @@ export default function Messages() {
                               ? `Claim #${activeNotification.related_claim_id}`
                               : `Report #${activeNotification.related_report_id}`}
                           </strong>
+
                         </div>
+
                       )}
 
                       <div className="notification-message-body">
-                        <p>{activeNotification.message}</p>
 
+                        {/* DISPLAY THE ACTUAL MESSAGE FROM THE DATABASE */}
+                        <p className="notification-main-message">
+                          {activeNotification.message}
+                        </p>
+
+                        {/* ITEM COLLECTION NOTIFICATION */}
                         {activeNotification.type === "item_ready" && (
+
                           <div className="notification-instructions">
-                            <h3>Collection Instructions</h3>
+
+                            <h3>Item Collection Instructions</h3>
 
                             <p>
-                              Please visit the UCU Lost and Found Office
-                              with your student identification card to
-                              collect your item.
+                              The administrator has approved your ownership
+                              claim. Please follow the collection details
+                              provided in the notification above.
                             </p>
+
                           </div>
+
                         )}
 
+                        {/* REJECTED CLAIM NOTIFICATION */}
                         {activeNotification.type === "claim_rejected" && (
+
                           <div className="notification-instructions">
+
                             <h3>What You Need to Do</h3>
 
                             <p>
@@ -403,11 +445,15 @@ export default function Messages() {
                               contact the Lost and Found Office if you
                               need further clarification.
                             </p>
+
                           </div>
+
                         )}
+
                       </div>
 
                       <div className="notification-footer">
+
                         <span>
                           Sent by ZUULA Campus Lost and Found System
                         </span>
@@ -419,20 +465,30 @@ export default function Messages() {
                         >
                           {activeNotification.is_read ? "Read" : "Unread"}
                         </span>
+
                       </div>
+
                     </div>
+
                   </>
+
                 ) : (
+
                   !loading && (
+
                     <div className="notification-details-empty">
+
                       <h3>Select a notification</h3>
 
                       <p>
                         Select a notification from the list to view its
                         details.
                       </p>
+
                     </div>
+
                   )
+
                 )}
 
                 {loading && (
@@ -440,11 +496,17 @@ export default function Messages() {
                     Loading notification details...
                   </div>
                 )}
+
               </section>
+
             </div>
+
           </div>
+
         </main>
+
       </div>
+
     </div>
   );
 }
