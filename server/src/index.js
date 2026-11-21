@@ -76,8 +76,8 @@ const startServer = async () => {
   try {
     await testDatabaseConnection();
 
-    app.listen(PORT, () => {
-      console.log(`ZUULA server running on http://localhost:${PORT}`);
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`ZUULA server running on port ${PORT}`);
       console.log(`Serving uploaded images from: ${uploadDirectory}`);
     });
   } catch (error) {
