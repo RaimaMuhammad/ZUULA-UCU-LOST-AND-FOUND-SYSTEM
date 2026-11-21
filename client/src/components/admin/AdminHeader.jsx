@@ -1,6 +1,7 @@
 
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import zuulaLogo from "../../assets/zuula-logo.png";
 
 export default function AdminHeader() {
   const { user } = useAuth();
@@ -21,8 +22,11 @@ export default function AdminHeader() {
   return (
     <header className="admin-header">
       <Link to="/admin" className="admin-brand">
-        <span className="admin-brand-mark">Z</span>
-        <span className="admin-brand-name">ZUULA</span>
+        <img
+          src={zuulaLogo}
+          alt="ZUULA Logo"
+          className="admin-logo-image"
+        />
       </Link>
 
       <div className="admin-header-actions">

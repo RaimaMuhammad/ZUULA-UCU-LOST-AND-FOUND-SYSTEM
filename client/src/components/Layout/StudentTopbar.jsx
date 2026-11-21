@@ -1,6 +1,7 @@
 
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import zuulaLogo from "../../assets/zuula-logo.png";
 
 export default function StudentTopbar() {
   const { user } = useAuth();
@@ -21,15 +22,15 @@ export default function StudentTopbar() {
   return (
     <header className="student-topbar">
 
-      {/* LOGO */}
       <Link to="/home" className="student-brand">
-        <span className="student-brand-mark">Z</span>
-        <span className="student-brand-name">ZUULA</span>
+        <img
+          src={zuulaLogo}
+          alt="ZUULA"
+          className="student-logo-image"
+        />
       </Link>
 
-      {/* RIGHT SIDE */}
       <div className="student-topbar-actions">
-
         <Link to="/profile" className="student-user">
           <span className="student-avatar">
             {initials || "S"}
@@ -41,7 +42,6 @@ export default function StudentTopbar() {
           </span>
         </Link>
 
-        {/* SETTINGS */}
         <Link
           to="/settings"
           className="student-settings"
@@ -50,7 +50,6 @@ export default function StudentTopbar() {
         >
           ⚙
         </Link>
-
       </div>
     </header>
   );

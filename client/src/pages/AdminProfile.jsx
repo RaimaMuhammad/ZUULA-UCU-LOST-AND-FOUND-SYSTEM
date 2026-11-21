@@ -1,16 +1,21 @@
+
 import { useState } from "react";
+import { useAuth } from "../context/AuthContext";
 
 export default function AdminProfile() {
-  const [isEditing, setIsEditing] = useState(false);
+  const { user } = useAuth();
 
-  const [profile, setProfile] = useState({
-    fullName: "System Administrator",
-    email: "admin@ucu.ac.ug",
-    staffId: "UCU-ADMIN-001",
-    role: "System Administrator",
-    department: "Computing and Technology",
-    phone: "",
-  });
+  const initialProfile = {
+    fullName: user?.fullName || user?.full_name || "Administrator",
+    email: user?.email || "",
+    staffId: user?.staffId || user?.staff_id || "",
+    role: user?.role || "Administrator",
+    department: user?.department || "",
+    phone: user?.phone || user?.phone_number || "",
+  };
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [profile, setProfile] = useState(initialProfile);
 
   function handleChange(e) {
     const { name, value } = e.target;
@@ -23,156 +28,228 @@ export default function AdminProfile() {
 
   function handleSave(e) {
     e.preventDefault();
+
+    // Backend profile update will be connected separately.
     setIsEditing(false);
   }
 
   function handleCancel() {
+    setProfile(initialProfile);
     setIsEditing(false);
   }
 
+  const initials = profile.fullName
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0].toUpperCase())
+    .join("");
+
   return (
     <div className="admin-profile-page">
-      <div className="page-heading">
-        <div>
-          <h1>My Profile</h1>
-          <p>View and manage your administrator account information.</p>
-        </div>
 
-        {!isEditing && (
-          <button
-            type="button"
-            className="primary-button"
-            onClick={() => setIsEditing(true)}
-          >
-            Edit Profile
-          </button>
-        )}
+      {/* PAGE HEADING */}
+      <div className="admin-profile-heading">
+        <h1>My Profile</h1>
+        <p>View and manage your administrator account information.</p>
       </div>
 
-      <section className="admin-profile-overview">
-        <div className="admin-profile-avatar">
-          {profile.fullName.charAt(0)}
-        </div>
+      {/* MAIN PROFILE LAYOUT */}
+      <div className="admin-profile-layout">
 
-        <div className="admin-profile-summary">
-          <h2>{profile.fullName}</h2>
-          <p>{profile.role}</p>
-          <span className="admin-account-status">Active Account</span>
-        </div>
-      </section>
+        {/* LEFT PROFILE CARD */}
+        <section className="admin-profile-card">
 
-      <section className="admin-profile-information">
-        <div className="profile-section-heading">
-          <h2>Personal Information</h2>
-        </div>
+          <div className="admin-profile-cover">
+            <div className="admin-profile-cover-pattern"></div>
+          </div>
 
-        <form onSubmit={handleSave}>
-          <div className="admin-profile-fields">
-            <div className="profile-field">
-              <label htmlFor="fullName">Full Name</label>
-              <input
-                id="fullName"
-                name="fullName"
-                type="text"
-                value={profile.fullName}
-                onChange={handleChange}
-                disabled={!isEditing}
-                required
-              />
-            </div>
-
-            <div className="profile-field">
-              <label htmlFor="email">Email Address</label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                value={profile.email}
-                onChange={handleChange}
-                disabled={!isEditing}
-                required
-              />
-            </div>
-
-            <div className="profile-field">
-              <label htmlFor="staffId">Staff ID</label>
-              <input
-                id="staffId"
-                name="staffId"
-                type="text"
-                value={profile.staffId}
-                disabled
-              />
-            </div>
-
-            <div className="profile-field">
-              <label htmlFor="role">Role</label>
-              <input
-                id="role"
-                name="role"
-                type="text"
-                value={profile.role}
-                disabled
-              />
-            </div>
-
-            <div className="profile-field">
-              <label htmlFor="department">Department</label>
-              <input
-                id="department"
-                name="department"
-                type="text"
-                value={profile.department}
-                onChange={handleChange}
-                disabled={!isEditing}
-              />
-            </div>
-
-            <div className="profile-field">
-              <label htmlFor="phone">Phone Number</label>
-              <input
-                id="phone"
-                name="phone"
-                type="tel"
-                value={profile.phone}
-                onChange={handleChange}
-                placeholder="Enter phone number"
-                disabled={!isEditing}
-              />
+          <div className="admin-profile-avatar-wrapper">
+            <div className="admin-profile-avatar">
+              {initials || "A"}
             </div>
           </div>
 
-          {isEditing && (
-            <div className="admin-profile-actions">
-              <button type="submit" className="primary-button">
-                Save Changes
-              </button>
+          <div className="admin-profile-user-information">
+            <h2>{profile.fullName}</h2>
 
+            <p className="admin-profile-email">
+              {profile.email}
+            </p>
+
+            <span className="admin-profile-role">
+              {profile.role}
+            </span>
+          </div>
+
+          <div className="admin-profile-card-divider"></div>
+
+          <div className="admin-profile-staff-number">
+            <span>Staff ID</span>
+            <strong>{profile.staffId || "Not provided"}</strong>
+          </div>
+
+          <div className="admin-profile-edit-action">
+            {!isEditing ? (
               <button
                 type="button"
-                className="secondary-button"
+                onClick={() => setIsEditing(true)}
+              >
+                <span>Edit Profile</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="admin-profile-cancel-edit"
                 onClick={handleCancel}
               >
-                Cancel
+                Cancel Editing
               </button>
+            )}
+          </div>
+
+        </section>
+
+        {/* RIGHT INFORMATION PANEL */}
+        <section className="admin-profile-account-panel">
+
+          <div className="admin-profile-account-heading">
+            <h2>Personal Information</h2>
+            <p>Manage your administrator account details.</p>
+          </div>
+
+          <form onSubmit={handleSave}>
+
+            <div className="admin-profile-form-fields">
+
+              <div className="admin-profile-field">
+                <label htmlFor="adminFullName">Full Name</label>
+                <input
+                  id="adminFullName"
+                  name="fullName"
+                  type="text"
+                  value={profile.fullName}
+                  onChange={handleChange}
+                  disabled={!isEditing}
+                  required
+                />
+              </div>
+
+              <div className="admin-profile-field">
+                <label htmlFor="adminEmail">Email Address</label>
+                <input
+                  id="adminEmail"
+                  name="email"
+                  type="email"
+                  value={profile.email}
+                  onChange={handleChange}
+                  disabled={!isEditing}
+                  required
+                />
+              </div>
+
+              <div className="admin-profile-field">
+                <label htmlFor="adminStaffId">Staff ID</label>
+                <input
+                  id="adminStaffId"
+                  name="staffId"
+                  type="text"
+                  value={profile.staffId}
+                  disabled
+                />
+              </div>
+
+              <div className="admin-profile-field">
+                <label htmlFor="adminRole">Role</label>
+                <input
+                  id="adminRole"
+                  name="role"
+                  type="text"
+                  value={profile.role}
+                  disabled
+                />
+              </div>
+
+              <div className="admin-profile-field">
+                <label htmlFor="adminDepartment">Department</label>
+                <input
+                  id="adminDepartment"
+                  name="department"
+                  type="text"
+                  value={profile.department}
+                  onChange={handleChange}
+                  disabled={!isEditing}
+                />
+              </div>
+
+              <div className="admin-profile-field">
+                <label htmlFor="adminPhone">Phone Number</label>
+                <input
+                  id="adminPhone"
+                  name="phone"
+                  type="tel"
+                  value={profile.phone}
+                  onChange={handleChange}
+                  placeholder="Enter phone number"
+                  disabled={!isEditing}
+                />
+              </div>
+
             </div>
-          )}
-        </form>
-      </section>
 
-      <section className="admin-account-information">
-        <h2>Account Information</h2>
+            {isEditing && (
+              <div className="admin-profile-form-actions">
+                <button type="submit" className="admin-save-button">
+                  Save Changes
+                </button>
 
-        <div className="profile-detail-row">
-          <span>Account Type</span>
-          <strong>Administrator</strong>
-        </div>
+                <button
+                  type="button"
+                  className="admin-cancel-button"
+                  onClick={handleCancel}
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
 
-        <div className="profile-detail-row">
-          <span>Account Status</span>
-          <strong>Active</strong>
-        </div>
-      </section>
+          </form>
+
+          {/* ACCOUNT INFORMATION */}
+          <div className="admin-profile-account-divider"></div>
+
+          <div className="admin-profile-account-heading admin-account-info-heading">
+            <h2>Account Information</h2>
+            <p>Details about your UCU administrator account.</p>
+          </div>
+
+          <div className="admin-profile-account-details">
+
+            <div className="admin-profile-detail-row">
+              <span>Account Type</span>
+              <strong>Administrator</strong>
+            </div>
+
+            <div className="admin-profile-detail-row">
+              <span>Account Status</span>
+              <strong className="admin-profile-active">Active</strong>
+            </div>
+
+            <div className="admin-profile-detail-row">
+              <span>Staff ID</span>
+              <strong>{profile.staffId || "Not provided"}</strong>
+            </div>
+
+            <div className="admin-profile-detail-row">
+              <span>Department</span>
+              <strong>{profile.department || "Not provided"}</strong>
+            </div>
+
+          </div>
+
+        </section>
+
+      </div>
     </div>
   );
 }

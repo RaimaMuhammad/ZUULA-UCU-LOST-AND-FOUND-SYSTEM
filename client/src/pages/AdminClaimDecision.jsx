@@ -14,7 +14,10 @@ function ScreenPlaceholder() {
         color: "#555555",
       }}
     >
-      Page Under Development
+      CLAIM SUBMITTED SUCCESSFULLY! <br />
+      <span style={{ fontSize: "14px", color: "#888888" }}>
+        Please wait for the administrator to review your claim.
+      </span>
     </div>
   );
 }

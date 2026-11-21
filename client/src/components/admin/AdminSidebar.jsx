@@ -1,5 +1,6 @@
 
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 
 const links = [
   {
@@ -31,6 +32,18 @@ const links = [
 ];
 
 export default function AdminSidebar() {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+
+  async function handleLogout() {
+    try {
+      await logout();
+      navigate("/login", { replace: true });
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  }
+
   return (
     <aside className="admin-sidebar">
       <p className="admin-sidebar-heading">ADMINISTRATION</p>
@@ -54,9 +67,22 @@ export default function AdminSidebar() {
         ))}
       </nav>
 
-      <div className="admin-sidebar-note">
-        <strong>UCU Lost &amp; Found</strong>
-        <span>Campus item management</span>
+      <div className="admin-sidebar-bottom">
+        <div className="admin-sidebar-note">
+          <strong>UCU Lost &amp; Found</strong>
+          <span>Campus item management</span>
+        </div>
+
+        <button
+          type="button"
+          className="admin-sidebar-logout"
+          onClick={handleLogout}
+        >
+          <span className="admin-sidebar-icon" aria-hidden="true">
+            ⇥
+          </span>
+          <span>Logout</span>
+        </button>
       </div>
     </aside>
   );
