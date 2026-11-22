@@ -6420,9 +6420,9 @@ tr:last-child td {
 
 /* Reduce student topbar logo size */
 .student-topbar .student-logo-image {
-  width: 200px !important;
-  height: 200px !important;
-  max-width: 200px !important;
+  width: 1500px !important;
+  height: 150px !important;
+  max-width: 150px !important;
   object-fit: contain !important;
   display: block !important;
 }

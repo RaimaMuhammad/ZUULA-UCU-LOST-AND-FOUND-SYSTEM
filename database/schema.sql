@@ -215,3 +215,18 @@ CREATE TABLE notifications (
     INDEX idx_notifications_user_created (user_id, created_at),
     INDEX idx_notifications_user_read (user_id, is_read)
 );
+
+
+USE zuula_db;
+
+USE zuula_db;
+
+USE zuula_db;
+
+SELECT
+    id,
+    full_name,
+    email,
+    password_hash,
+    role
+FROM users;
