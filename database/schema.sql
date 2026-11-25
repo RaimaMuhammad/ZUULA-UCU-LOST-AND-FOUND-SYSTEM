@@ -62,6 +62,18 @@ CREATE TABLE IF NOT EXISTS claims (
     INDEX idx_claimant (claimant_id)
 );
 
+
+USE zuula_db;
+
+ALTER TABLE claims
+ADD COLUMN return_date DATE NULL,
+ADD COLUMN return_notes TEXT NULL,
+ADD COLUMN returned_by INT NULL,
+ADD COLUMN returned_at TIMESTAMP NULL,
+ADD CONSTRAINT fk_claim_returned_by
+FOREIGN KEY (returned_by) REFERENCES users(id)
+ON DELETE SET NULL;
+
 SHOW TABLES;
 
 DESCRIBE users;
